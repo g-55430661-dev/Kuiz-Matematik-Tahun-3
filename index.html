@@ -17,7 +17,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzEkAfb47mQq9HHHZI5nIYsNOrdRbnHRUEDuP6rHD0qhGmCifFloDwJ9kfHmiecJqVxGg/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzxuCh2iL4hEDfyV1zm8xKQB2b1I4W3Zgm-1EDHO01pi1yNDoxHx0I_UTEzO56FV-LkRw/exec";
 
         const KELAS_LIST = [
             "3 Dedikasi", "3 Efektif", "3 Intelek", "3 Inovatif",
@@ -31,7 +31,7 @@
             { id: 4, topic: "BUNDAR NOMBOR", type: "tf", question: "4 892 dibundarkan kepada ratus terdekat menjadi 4 900.", options: ["Betul", "Salah"], answer: "Betul", hint: "Lihat digit puluh (9).", explanation: "Digit puluh ialah 9 (>=5), jadi ratus 8 bertambah menjadi 9 ➔ 4 900." },
             { id: 5, topic: "OPERASI TAMBAH", type: "mcq", question: "2 415 + 1 382 = ?", options: ["3 797", "3 798", "3 897", "3 697"], answer: "3 797", hint: "Tambah mengikut nilai tempat dari sa ke ribu.", explanation: "2 415 + 1 382 = 3 797." },
             { id: 6, topic: "OPERASI TAMBAH", type: "scenario", question: "Ahmad ada 1 250 biji guli. Ali memberi 840 biji guli lagi kepadanya. Berapakah jumlah guli Ahmad?", options: ["2 090", "2 080", "2 190", "1 990"], answer: "2 090", hint: "Operasi tambah: 1 250 + 840.", explanation: "1 250 + 840 = 2 090 biji guli." },
-            { id: 7, topic: "OPERASI TOLAK", type: "mcq", question: "5 680 - 2 340 = ?", options: ["3 340", "3 340", "3 340", "3 340"], options: ["3 340", "3 240", "3 440", "3 140"], answer: "3 340", hint: "Tolak sa, puluh, ratus, dan ribu.", explanation: "5 680 - 2 340 = 3 340." },
+            { id: 7, topic: "OPERASI TOLAK", type: "mcq", question: "5 680 - 2 340 = ?", options: ["3 340", "3 240", "3 440", "3 140"], answer: "3 340", hint: "Tolak sa, puluh, ratus, dan ribu.", explanation: "5 680 - 2 340 = 3 340." },
             { id: 8, topic: "OPERASI TOLAK", type: "tf", question: "8 000 - 3 500 = 4 500.", options: ["Betul", "Salah"], answer: "Betul", hint: "80 ratus - 35 ratus = 45 ratus.", explanation: "8 000 - 3 500 = 4 500." },
             { id: 9, topic: "OPERASI DARAB", type: "mcq", question: "124 × 6 = ?", options: ["744", "724", "644", "754"], answer: "744", hint: "4×6=24, 2×6=12, 1×6=6.", explanation: "124 × 6 = 744." },
             { id: 10, topic: "OPERASI DARAB", type: "short", question: "Sebuah kotak ada 100 biji pensel. Berapakah pensel dalam 8 buah kotak yang sama?", options: ["800", "80", "8000", "880"], answer: "800", hint: "8 × 100.", explanation: "8 × 100 = 800 biji pensel." },
@@ -67,8 +67,35 @@
             { id: 40, topic: "TAMBAH WANG DAN TOLAK WANG", type: "scenario", question: "Muthu ada RM 200. Dia membeli kasut RM 80 dan baju RM 50. Berapa baki wang Muthu?", options: ["RM 70", "RM 80", "RM 60", "RM 50"], answer: "RM 70", hint: "RM 200 - RM 80 - RM 50.", explanation: "RM 200 - RM 130 = RM 70." }
         ];
 
+        // Format Date Utility
+        const formatDate = (dateStr) => {
+            if (!dateStr) return '-';
+            try {
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return String(dateStr);
+                return d.toLocaleDateString('ms-MY', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+            } catch (e) {
+                return String(dateStr);
+            }
+        };
+
+        // Format Percentage Utility (Fixes 0.45% -> 45%)
+        const formatPercentage = (val) => {
+            if (val === undefined || val === null || val === '') return '0%';
+            let strVal = String(val).replace('%', '').trim();
+            let num = parseFloat(strVal);
+            if (isNaN(num)) return '0%';
+            if (num > 0 && num <= 1) {
+                num = num * 100;
+            }
+            return Math.round(num) + '%';
+        };
+
         function App() {
-            const [mode, setMode] = useState('student'); // 'student' or 'teacher'
+            const [mode, setMode] = useState('student');
             const [studentName, setStudentName] = useState('');
             const [studentClass, setStudentClass] = useState(KELAS_LIST[0]);
             const [isQuizStarted, setIsQuizStarted] = useState(false);
@@ -83,10 +110,11 @@
             const [quizCompleted, setQuizCompleted] = useState(false);
             const [userAnswersHistory, setUserAnswersHistory] = useState([]);
 
-            // Teacher Mode
+            // Teacher Mode State
             const [passwordInput, setPasswordInput] = useState('');
             const [isTeacherAuthenticated, setIsTeacherAuthenticated] = useState(false);
             const [records, setRecords] = useState([]);
+            const [filterClass, setFilterClass] = useState('Semua');
             const [fetchStatus, setFetchStatus] = useState('');
             const [isLoading, setIsLoading] = useState(false);
 
@@ -119,7 +147,7 @@
                 }
             }, [mode, isTeacherAuthenticated]);
 
-            // Shuffle answers on each question load
+            // Shuffle answers
             const startQuiz = () => {
                 if (!studentName.trim()) {
                     alert('Sila masukkan Nama Murid terlebih dahulu.');
@@ -190,21 +218,28 @@
             };
 
             const downloadCSV = () => {
-                if (records.length === 0) {
+                const dataToExport = filteredRecords;
+                if (dataToExport.length === 0) {
                     alert("Tiada rekod untuk dimuat turun.");
                     return;
                 }
                 let csv = "Tarikh,Nama Murid,Kelas,Markah,Jumlah,Peratus (%)\n";
-                records.forEach(r => {
-                    csv += `"${r.date}","${r.name}","${r.class}",${r.score},${r.total},"${r.percentage}%"\n`;
+                dataToExport.forEach(r => {
+                    csv += `"${formatDate(r.date)}","${r.name}","${r.class}",${r.score},${r.total || 40},"${formatPercentage(r.percentage)}"\n`;
                 });
                 const blob = new Blob([csv], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Rekod_Kuiz_Matematik_T3_${new Date().toISOString().slice(0,10)}.csv`;
+                a.download = `Rekod_Kuiz_Matematik_T3_${filterClass.replace(' ', '_')}_${new Date().toISOString().slice(0,10)}.csv`;
                 a.click();
             };
+
+            // Filter records by selected class
+            const filteredRecords = records.filter(r => {
+                if (filterClass === 'Semua') return true;
+                return r.class === filterClass;
+            });
 
             return (
                 <div className="max-w-4xl mx-auto p-4 md:p-6">
@@ -267,7 +302,6 @@
                                     </div>
                                 </div>
                             ) : !quizCompleted ? (
-                                /* Paparan Soalan */
                                 <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200">
                                     {/* Progress Bar & Header */}
                                     <div className="flex justify-between items-center mb-4">
@@ -394,8 +428,8 @@
                                         type="password" 
                                         value={passwordInput}
                                         onChange={(e) => setPasswordInput(e.target.value)}
-                                        placeholder="Kata Laluan (5555)"
-                                        className="w-full text-center px-4 py-3 border border-slate-300 rounded-xl mb-4 font-bold tracking-widest focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        placeholder="••••"
+                                        className="w-full text-center px-4 py-3 border border-slate-300 rounded-xl mb-4 font-bold tracking-widest text-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                     />
                                     <button 
                                         onClick={() => {
@@ -414,7 +448,9 @@
                                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                                         <div>
                                             <h2 className="text-xl font-bold text-slate-800">Papan Pemuka Rekod Keputusan Murid</h2>
-                                            <p className="text-xs text-slate-500">Jumlah Rekod: {records.length} penyertaan</p>
+                                            <p className="text-xs text-slate-500">
+                                                Paparan: {filteredRecords.length} daripada {records.length} rekod
+                                            </p>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
                                             <button 
@@ -436,9 +472,25 @@
                                         </div>
                                     </div>
 
-                                    {/* Status Message Box */}
-                                    <div className="p-3 bg-slate-100 rounded-xl mb-4 text-xs font-semibold text-slate-700">
-                                        Status Sambungan: {fetchStatus || 'Sedia'}
+                                    {/* Status Message & Filter Bar */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                        <div className="md:col-span-2 p-3 bg-slate-100 rounded-xl text-xs font-semibold text-slate-700 flex items-center">
+                                            <span>Status: {fetchStatus || 'Sedia'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <label className="text-xs font-bold text-slate-700 whitespace-nowrap">Tapis Kelas:</label>
+                                            <select 
+                                                value={filterClass}
+                                                onChange={(e) => setFilterClass(e.target.value)}
+                                                className="w-full p-2 text-xs border border-slate-300 rounded-xl font-bold bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                                <option value="Semua">🔍 Semua Kelas ({records.length})</option>
+                                                {KELAS_LIST.map(k => (
+                                                    <option key={k} value={k}>
+                                                        {k} ({records.filter(r => r.class === k).length})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
 
                                     {/* Table */}
@@ -454,16 +506,28 @@
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-200">
-                                                {records.length > 0 ? (
-                                                    records.map((r, idx) => (
-                                                        <tr key={idx} className="hover:bg-slate-50">
-                                                            <td className="p-3 text-xs">{r.date || '-'}</td>
+                                                {filteredRecords.length > 0 ? (
+                                                    filteredRecords.map((r, idx) => (
+                                                        <tr key={idx} className="hover:bg-slate-50 transition">
+                                                            <td className="p-3 text-xs text-slate-500 font-medium">
+                                                                {formatDate(r.date)}
+                                                            </td>
                                                             <td className="p-3 font-bold text-slate-800">{r.name}</td>
-                                                            <td className="p-3">{r.class}</td>
-                                                            <td className="p-3 font-bold">{r.score} / {r.total || 40}</td>
                                                             <td className="p-3">
-                                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${Number(r.percentage) >= 80 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                                                    {r.percentage}%
+                                                                <span className="px-2 py-1 bg-slate-100 rounded-md text-xs font-semibold text-slate-700">
+                                                                    {r.class}
+                                                                </span>
+                                                            </td>
+                                                            <td className="p-3 font-bold text-slate-800">{r.score} / {r.total || 40}</td>
+                                                            <td className="p-3">
+                                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                                                    parseInt(formatPercentage(r.percentage)) >= 80 
+                                                                        ? 'bg-emerald-100 text-emerald-800' 
+                                                                        : parseInt(formatPercentage(r.percentage)) >= 50
+                                                                        ? 'bg-amber-100 text-amber-800'
+                                                                        : 'bg-rose-100 text-rose-800'
+                                                                }`}>
+                                                                    {formatPercentage(r.percentage)}
                                                                 </span>
                                                             </td>
                                                         </tr>
@@ -471,7 +535,9 @@
                                                 ) : (
                                                     <tr>
                                                         <td colSpan="5" className="p-8 text-center text-slate-400">
-                                                            Tekan <strong>"Muat Semula Data"</strong> di atas untuk mengambil rekod terkini dari Google Sheet.
+                                                            {records.length > 0 
+                                                                ? `Tiada rekod murid untuk kelas "${filterClass}".` 
+                                                                : 'Tekan "Muat Semula Data" di atas untuk mengambil rekod dari Google Sheet.'}
                                                         </td>
                                                     </tr>
                                                 )}
