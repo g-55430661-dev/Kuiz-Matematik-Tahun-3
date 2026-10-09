@@ -547,14 +547,35 @@
   const [saveUrlSuccess, setSaveUrlSuccess] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Rekod Guru daripada LocalStorage
+  // Rekod Guru daripada LocalStorage / Google Sheet
   const [records, setRecords] = useState([]);
 
+  // Fungsi Tarik Data dari Google Sheet
+  const fetchRecordsFromSheet = () => {
+    if (!googleScriptUrl) return;
+    setIsSyncing(true);
+    fetch(googleScriptUrl)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setRecords(data);
+          localStorage.setItem('m3_quiz_records', JSON.stringify(data));
+        }
+        setIsSyncing(false);
+      })
+      .catch(err => {
+        console.error("Gagal menarik data dari Google Sheet:", err);
+        setIsSyncing(false);
+      });
+  };
+
+  // Muat data automatik semasa laman dibuka
   useEffect(() => {
     const saved = localStorage.getItem('m3_quiz_records');
     if (saved) {
       try { setRecords(JSON.parse(saved)); } catch (e) {}
     }
+    fetchRecordsFromSheet();
   }, []);
 
   const saveRecordToStorage = (newRecord) => {
@@ -577,7 +598,10 @@
           percentage: newRecord.percentage
         })
       })
-      .then(() => setIsSyncing(false))
+      .then(() => {
+        setIsSyncing(false);
+        fetchRecordsFromSheet(); // Kemaskini semula senarai selepas hantar
+      })
       .catch(err => {
         console.error("Error sending data:", err);
         setIsSyncing(false);
