@@ -17,6 +17,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // URL Google Script untuk Hantar Jawapan (doPost)
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzxuCh2iL4hEDfyV1zm8xKQB2b1I4W3Zgm-1EDHO01pi1yNDoxHx0I_UTEzO56FV-LkRw/exec";
 
         const KELAS_LIST = [
@@ -94,38 +95,22 @@
             return Math.round(num) + '%';
         };
 
-        // JSONP Fetch Utility (Melepasi Sekatan CORS & Chrome DELIMa)
-        const fetchJsonp = (url) => {
-            return new Promise((resolve, reject) => {
-                const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
-                const timer = setTimeout(() => {
-                    cleanup();
-                    reject(new Error('Masa tamat (Timeout). Sila pastikan New Deployment telah dibuat.'));
-                }, 12000);
-
-                const cleanup = () => {
-                    clearTimeout(timer);
-                    if (window[callbackName]) delete window[callbackName];
-                    const scriptElem = document.getElementById(callbackName);
-                    if (scriptElem && scriptElem.parentNode) {
-                        scriptElem.parentNode.removeChild(scriptElem);
-                    }
-                };
-
-                window[callbackName] = (data) => {
-                    cleanup();
-                    resolve(data);
-                };
-
-                const script = document.createElement('script');
-                script.id = callbackName;
-                script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
-                script.onerror = () => {
-                    cleanup();
-                    reject(new Error('Gagal memuatkan skrip JSONP.'));
-                };
-                document.body.appendChild(script);
-            });
+        // Parse CSV Line Helper
+        const parseCSVLine = (text) => {
+            let p = '', r = [], q = false;
+            for (let i = 0; i < text.length; i++) {
+                let c = text[i];
+                if (c === '"') {
+                    q = !q;
+                } else if (c === ',' && !q) {
+                    r.push(p.trim().replace(/^"|"$/g, ''));
+                    p = '';
+                } else {
+                    p += c;
+                }
+            }
+            r.push(p.trim().replace(/^"|"$/g, ''));
+            return r;
         };
 
         function App() {
@@ -142,53 +127,87 @@
             const [isCorrect, setIsCorrect] = useState(null);
             const [score, setScore] = useState(0);
             const [quizCompleted, setQuizCompleted] = useState(false);
-            const [userAnswersHistory, setUserAnswersHistory] = useState([]);
 
             // Teacher Mode State
             const [passwordInput, setPasswordInput] = useState('');
             const [isTeacherAuthenticated, setIsTeacherAuthenticated] = useState(false);
+            const [sheetUrlInput, setSheetUrlInput] = useState(() => {
+                return localStorage.getItem('m3_sheet_url_input') || '';
+            });
             const [records, setRecords] = useState([]);
             const [filterClass, setFilterClass] = useState('Semua');
             const [fetchStatus, setFetchStatus] = useState('');
             const [isLoading, setIsLoading] = useState(false);
 
-            // Fetch records from Google Script
-            const fetchFromSheet = () => {
+            // Extract Spreadsheet ID from URL or ID string
+            const extractSheetId = (input) => {
+                if (!input) return '';
+                const match = input.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                if (match && match[1]) return match[1];
+                if (input.length > 20 && !input.includes('/')) return input.trim();
+                return '';
+            };
+
+            // Direct Google Sheet CSV Fetch (100% bypasses Apps Script GET restrictions)
+            const fetchFromGoogleSheetDirect = (customUrlInput) => {
+                const targetInput = customUrlInput !== undefined ? customUrlInput : sheetUrlInput;
+                const sheetId = extractSheetId(targetInput);
+
+                if (!sheetId) {
+                    setFetchStatus('⚠️ Sila tampal Pautan (Link) Google Sheet anda di bawah.');
+                    return;
+                }
+
                 setIsLoading(true);
                 setFetchStatus('Sedang menarik rekod dari Google Sheet...');
-                
-                fetchJsonp(GOOGLE_SCRIPT_URL)
-                    .then(data => {
-                        setIsLoading(false);
-                        if (Array.isArray(data)) {
-                            setRecords(data);
-                            setFetchStatus(`✅ Berjaya memuatkan ${data.length} rekod dari Google Sheet!`);
-                        } else {
-                            setFetchStatus("⚠️ Format data tidak sah.");
-                        }
+
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
+
+                fetch(csvUrl)
+                    .then(res => {
+                        if (!res.ok) throw new Error('Gagal mengakses Google Sheet.');
+                        return res.text();
                     })
-                    .catch(jsonpErr => {
-                        fetch(GOOGLE_SCRIPT_URL)
-                            .then(res => res.json())
-                            .then(data => {
-                                setIsLoading(false);
-                                if (Array.isArray(data)) {
-                                    setRecords(data);
-                                    setFetchStatus(`✅ Berjaya memuatkan ${data.length} rekod dari Google Sheet!`);
-                                } else {
-                                    setFetchStatus("⚠️ Format data tidak sah.");
-                                }
-                            })
-                            .catch(fetchErr => {
-                                setIsLoading(false);
-                                setFetchStatus(`⚠️ Gagal berhubung. Sila pastikan Langkah 1 (New Deployment Apps Script) telah selesai dibuat.`);
-                            });
+                    .then(csvText => {
+                        setIsLoading(false);
+                        const lines = csvText.split('\n').filter(l => l.trim().length > 0);
+                        const parsedRecords = [];
+
+                        for (let i = 1; i < lines.length; i++) {
+                            const row = parseCSVLine(lines[i]);
+                            if (row && row.length >= 3 && (row[0] || row[1])) {
+                                parsedRecords.push({
+                                    date: row[0] || '',
+                                    name: row[1] || '',
+                                    class: row[2] || '',
+                                    score: row[3] !== undefined ? row[3] : '0',
+                                    total: row[4] !== undefined ? row[4] : '40',
+                                    percentage: row[5] || '0%'
+                                });
+                            }
+                        }
+
+                        setRecords(parsedRecords);
+                        setFetchStatus(`✅ Berjaya memuatkan ${parsedRecords.length} rekod dari Google Sheet!`);
+                    })
+                    .catch(() => {
+                        setIsLoading(false);
+                        setFetchStatus(`⚠️ Gagal berhubung. Pastikan Google Sheet dibuka: Share ➔ Anyone with the link can view.`);
                     });
+            };
+
+            const handleSaveSheetUrl = () => {
+                localStorage.setItem('m3_sheet_url_input', sheetUrlInput);
+                fetchFromGoogleSheetDirect(sheetUrlInput);
             };
 
             useEffect(() => {
                 if (mode === 'teacher' && isTeacherAuthenticated) {
-                    fetchFromSheet();
+                    if (sheetUrlInput) {
+                        fetchFromGoogleSheetDirect();
+                    } else {
+                        setFetchStatus('💡 Tampal pautan Google Sheet anda di bawah untuk memuatkan rekod.');
+                    }
                 }
             }, [mode, isTeacherAuthenticated]);
 
@@ -209,7 +228,6 @@
                 setShuffledQuestions(prepared);
                 setCurrentQIndex(0);
                 setScore(0);
-                setUserAnswersHistory([]);
                 setIsQuizStarted(true);
                 setQuizCompleted(false);
             };
@@ -221,12 +239,6 @@
                 setIsCorrect(correct);
                 setIsSubmitted(true);
                 if (correct) setScore(prev => prev + 1);
-
-                setUserAnswersHistory(prev => [...prev, {
-                    topic: q.topic,
-                    question: q.question,
-                    isCorrect: correct
-                }]);
             };
 
             const handleNextQuestion = () => {
@@ -253,7 +265,6 @@
                     percentage: pct
                 };
 
-                // Hantar ke Google Sheet
                 fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -280,7 +291,6 @@
                 a.click();
             };
 
-            // Filter records by selected class
             const filteredRecords = records.filter(r => {
                 if (filterClass === 'Semua') return true;
                 return r.class === filterClass;
@@ -348,7 +358,6 @@
                                 </div>
                             ) : !quizCompleted ? (
                                 <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200">
-                                    {/* Progress Bar & Header */}
                                     <div className="flex justify-between items-center mb-4">
                                         <span className="text-xs font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
                                             {shuffledQuestions[currentQIndex].topic}
@@ -368,7 +377,6 @@
                                         {shuffledQuestions[currentQIndex].question}
                                     </h3>
 
-                                    {/* Options */}
                                     <div className="space-y-3 mb-6">
                                         {shuffledQuestions[currentQIndex].shuffledOptions.map((opt, idx) => {
                                             let btnStyle = "border-slate-200 hover:bg-slate-50 text-slate-700";
@@ -397,7 +405,6 @@
                                         })}
                                     </div>
 
-                                    {/* Feedback Box */}
                                     {isSubmitted && (
                                         <div className={`p-4 rounded-xl mb-6 ${isCorrect ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'}`}>
                                             <p className="font-bold text-lg mb-1">
@@ -407,14 +414,12 @@
                                         </div>
                                     )}
 
-                                    {/* Hint Box jika salah */}
                                     {!isCorrect && selectedAnswer && !isSubmitted && (
                                         <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl mb-4 text-xs text-amber-800">
                                             💡 <strong>Petunjuk:</strong> {shuffledQuestions[currentQIndex].hint}
                                         </div>
                                     )}
 
-                                    {/* Buttons */}
                                     <div className="flex justify-end gap-3">
                                         {!isSubmitted ? (
                                             <button 
@@ -433,7 +438,6 @@
                                     </div>
                                 </div>
                             ) : (
-                                /* Keputusan Akhir Murid */
                                 <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 text-center">
                                     <div className="inline-block p-4 bg-yellow-100 text-yellow-600 rounded-full text-4xl mb-4">🏆</div>
                                     <h2 className="text-2xl font-black text-slate-800 mb-1">Syabas, {studentName}!</h2>
@@ -499,7 +503,7 @@
                                         </div>
                                         <div className="flex flex-wrap gap-2">
                                             <button 
-                                                onClick={fetchFromSheet}
+                                                onClick={() => fetchFromGoogleSheetDirect()}
                                                 disabled={isLoading}
                                                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-2">
                                                 <i className={`fa-solid fa-rotate ${isLoading ? 'fa-spin' : ''}`}></i> Muat Semula Data
@@ -515,6 +519,30 @@
                                                 <i className="fa-solid fa-print"></i> Print Report
                                             </button>
                                         </div>
+                                    </div>
+
+                                    {/* Link Input Section for Direct Google Sheets Access */}
+                                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-6">
+                                        <label className="block text-xs font-bold text-blue-900 mb-1">
+                                            📊 Pautan Google Sheet (Sambungan Terus Bypassing Apps Script Restrictions):
+                                        </label>
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input 
+                                                type="text" 
+                                                value={sheetUrlInput}
+                                                onChange={(e) => setSheetUrlInput(e.target.value)}
+                                                placeholder="Tampal Link Google Sheet di sini (cth: https://docs.google.com/spreadsheets/d/...)"
+                                                className="w-full px-3 py-2 text-xs border border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium bg-white"
+                                            />
+                                            <button 
+                                                onClick={handleSaveSheetUrl}
+                                                className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl whitespace-nowrap shadow">
+                                                Sambung & Simpan
+                                            </button>
+                                        </div>
+                                        <p className="text-[11px] text-blue-700 mt-1">
+                                            *Pastikan Google Sheet anda ditetapkan: <strong>Share ➔ Anyone with the link (Viewer)</strong>.
+                                        </p>
                                     </div>
 
                                     {/* Status Message & Filter Bar */}
@@ -582,7 +610,7 @@
                                                         <td colSpan="5" className="p-8 text-center text-slate-400">
                                                             {records.length > 0 
                                                                 ? `Tiada rekod murid untuk kelas "${filterClass}".` 
-                                                                : 'Tekan "Muat Semula Data" di atas untuk mengambil rekod dari Google Sheet.'}
+                                                                : 'Tampal pautan Google Sheet anda di atas dan tekan "Sambung & Simpan".'}
                                                         </td>
                                                     </tr>
                                                 )}
