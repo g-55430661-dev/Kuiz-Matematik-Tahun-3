@@ -536,55 +536,54 @@
       const [userAnswers, setUserAnswers] = useState({}); // { qId: { selected, isCorrect, attempts } }
       const [score, setScore] = useState(0);
       
-      // Kata Laluan Guru
-      const [teacherPassword, setTeacherPassword] = useState('');
-      const [passwordError, setPasswordError] = useState('');
+     // Kata Laluan Guru
+  const [teacherPassword, setTeacherPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
-      // Google Script Web App URL untuk Database Google Drive
-      const [googleScriptUrl, setGoogleScriptUrl] = useState(() => {
-        return localStorage.getItem('m3_google_script_url') || '';
+  // Google Script Web App URL untuk Database Google Drive
+  const [googleScriptUrl, setGoogleScriptUrl] = useState(() => {
+    return "https://script.google.com/macros/s/AKfycbzxuCh2iL4hEDfyV1zm8xKQB2b1I4W3Zgm-1EDHO01pi1yNDoxHx0I_UTEzO56FV-LkRw/exec";
+  });
+  const [saveUrlSuccess, setSaveUrlSuccess] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Rekod Guru daripada LocalStorage
+  const [records, setRecords] = useState([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('m3_quiz_records');
+    if (saved) {
+      try { setRecords(JSON.parse(saved)); } catch (e) {}
+    }
+  }, []);
+
+  const saveRecordToStorage = (newRecord) => {
+    const updated = [newRecord, ...records];
+    setRecords(updated);
+    localStorage.setItem('m3_quiz_records', JSON.stringify(updated));
+
+    // Hantar ke Google Sheet jika URL dikonfigurasi
+    if (googleScriptUrl.trim()) {
+      setIsSyncing(true);
+      fetch(googleScriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          name: newRecord.name,
+          class: newRecord.class,
+          score: newRecord.score,
+          total: newRecord.total,
+          percentage: newRecord.percentage
+        })
+      })
+      .then(() => setIsSyncing(false))
+      .catch(err => {
+        console.error("Error sending data:", err);
+        setIsSyncing(false);
       });
-      const [saveUrlSuccess, setSaveUrlSuccess] = useState(false);
-      const [isSyncing, setIsSyncing] = useState(false);
-
-      // Rekod Guru daripada LocalStorage
-      const [records, setRecords] = useState([]);
-
-      useEffect(() => {
-        const saved = localStorage.getItem('m3_quiz_records');
-        if (saved) {
-          try { setRecords(JSON.parse(saved)); } catch (e) {}
-        }
-      }, []);
-
-      const saveRecordToStorage = (newRecord) => {
-        const updated = [newRecord, ...records];
-        setRecords(updated);
-        localStorage.setItem('m3_quiz_records', JSON.stringify(updated));
-
-        // Hantar ke Google Sheet jika URL dikonfigurasi
-        if (googleScriptUrl.trim()) {
-          setIsSyncing(true);
-          fetch(googleScriptUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: newRecord.name,
-              class: newRecord.class,
-              score: newRecord.score,
-              total: newRecord.total,
-              percentage: newRecord.percentage,
-              date: newRecord.date
-            })
-          }).then(() => {
-            setIsSyncing(false);
-          }).catch((err) => {
-            console.error("Gagal hantar ke Google Sheet:", err);
-            setIsSyncing(false);
-          });
-        }
-      };
+    }
+  };
 
       const handleSaveGoogleUrl = (e) => {
         e.preventDefault();
