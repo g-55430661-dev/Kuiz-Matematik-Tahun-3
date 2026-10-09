@@ -536,7 +536,7 @@
       const [userAnswers, setUserAnswers] = useState({}); // { qId: { selected, isCorrect, attempts } }
       const [score, setScore] = useState(0);
       
-     // Kata Laluan Guru
+  // Kata Laluan Guru
   const [teacherPassword, setTeacherPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
@@ -550,7 +550,7 @@
   // Rekod Guru daripada LocalStorage / Google Sheet
   const [records, setRecords] = useState([]);
 
-  // Fungsi Tarik Data dari Google Sheet
+  // Fungsi Tarik Data dari Google Sheet ke Mod Guru
   const fetchRecordsFromSheet = () => {
     if (!googleScriptUrl) return;
     setIsSyncing(true);
@@ -569,7 +569,7 @@
       });
   };
 
-  // Muat data automatik semasa laman dibuka
+  // Muat data automatik setiap kali Mod Guru dibuka
   useEffect(() => {
     const saved = localStorage.getItem('m3_quiz_records');
     if (saved) {
@@ -600,7 +600,7 @@
       })
       .then(() => {
         setIsSyncing(false);
-        fetchRecordsFromSheet(); // Kemaskini semula senarai selepas hantar
+        setTimeout(fetchRecordsFromSheet, 1000); // Kemaskini semula senarai selepas 1 saat
       })
       .catch(err => {
         console.error("Error sending data:", err);
