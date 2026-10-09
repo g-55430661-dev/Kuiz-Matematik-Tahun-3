@@ -1,1386 +1,492 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kuiz Interaktif Matematik Tahun 3</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- React & ReactDOM -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <!-- Babel for JSX -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Canvas Confetti -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
-    body {
-      font-family: 'Nunito', sans-serif;
-      background-color: #f0f9ff;
-    }
-    h1, h2, h3, .font-fun {
-      font-family: 'Fredoka', cursive;
-    }
-    @media print {
-      .no-print { display: none !important; }
-      .print-only { display: block !important; }
-      body { background: white; color: black; }
-    }
-    .print-only { display: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuiz Matematik Tahun 3 Interaktif</title>
+    <!-- React & Tailwind CSS -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-  <div id="root"></div>
+<body class="bg-slate-100 font-sans min-h-screen text-slate-800">
+    <div id="root"></div>
 
-  <script type="text/babel">
-    const { useState, useEffect, useMemo } = React;
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-    // Senarai Kelas Tahun 3
-    const KELAS_LIST = [
-      "3 Dedikasi",
-      "3 Efektif",
-      "3 Intelek",
-      "3 Inovatif",
-      "3 Kreatif",
-      "3 Optimis",
-      "3 Positif",
-      "3 Proaktif",
-      "3 Progresif"
-    ];
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzxuCh2iL4hEDfyV1zm8xKQB2b1I4W3Zgm-1EDHO01pi1yNDoxHx0I_UTEzO56FV-LkRw/exec";
 
-    // Bank Soalan 40 Soalan Matematik Tahun 3
-    const RAW_QUESTIONS = [
-      // Nilai Tempat & Nilai Digit
-      {
-        id: 1,
-        topic: "Nilai Tempat",
-        type: "MCQ",
-        question: "Apakah nilai tempat bagi digit 7 dalam nombor 4 725?",
-        options: ["Sa", "Puluh", "Ratus", "Ribu"],
-        answer: "Ratus",
-        explanation: "Dalam nombor 4 725, digit 7 berada di kedudukan ratus.",
-        hint: "Kedudukan dari kanan: Sa, Puluh, Ratus, Ribu."
-      },
-      {
-        id: 2,
-        topic: "Nilai Tempat",
-        type: "MCQ",
-        question: "Apakah nilai digit bagi digit 9 dalam nombor 9 104?",
-        options: ["9", "90", "900", "9 000"],
-        answer: "9 000",
-        explanation: "Digit 9 berada pada nilai tempat ribu, jadi nilai digitnya ialah 9 000.",
-        hint: "Digit 9 berada di rumah ribu."
-      },
-      {
-        id: 3,
-        topic: "Nilai Tempat",
-        type: "TRUE_FALSE",
-        question: "Nilai tempat bagi digit 0 dalam nombor 5 012 ialah 'puluh'.",
-        options: ["Betul", "Salah"],
-        answer: "Salah",
-        explanation: "Nilai tempat bagi digit 0 dalam 5 012 ialah 'ratus'.",
-        hint: "Perhatikan kedudukan digit 0 (Sa, Puluh, Ratus, Ribu)."
-      },
+        const KELAS_LIST = [
+            "3 Dedikasi", "3 Efektif", "3 Intelek", "3 Inovatif",
+            "3 Kreatif", "3 Optimis", "3 Positif", "3 Proaktif", "3 Progresif"
+        ];
 
-      // Bundar Nombor
-      {
-        id: 4,
-        topic: "Bundar Nombor",
-        type: "MCQ",
-        question: "Bundarkan 3 468 kepada puluh terdekat.",
-        options: ["3 460", "3 470", "3 500", "3 400"],
-        answer: "3 470",
-        explanation: "Digit sa ialah 8 (≥5), jadi tambah 1 pada digit puluh (6+1=7) menjadi 3 470.",
-        hint: "Lihat digit sa. Jika 5 atau lebih, tambah 1 pada digit puluh."
-      },
-      {
-        id: 5,
-        topic: "Bundar Nombor",
-        type: "TRUE_FALSE",
-        question: "7 825 dibundarkan kepada ratus terdekat ialah 7 800.",
-        options: ["Betul", "Salah"],
-        answer: "Betul",
-        explanation: "Digit puluh ialah 2 (<5), maka digit ratus (8) kekal menjadi 7 800.",
-        hint: "Lihat digit puluh. Adakah ia kurang daripada 5?"
-      },
-      {
-        id: 6,
-        topic: "Bundar Nombor",
-        type: "MCQ",
-        question: "Bundarkan 4 990 kepada ribu terdekat.",
-        options: ["4 000", "4 900", "5 000", "5 100"],
-        answer: "5 000",
-        explanation: "Digit ratus ialah 9 (≥5), tambah 1 pada digit ribu (4+1=5) menjadi 5 000.",
-        hint: "Digit ratus ialah 9, jadi genapkan ke ribu berikutnya."
-      },
+        const SOALAN_DATABASE = [
+            { id: 1, topic: "NILAI TEMPAT", type: "mcq", question: "Apakah nilai tempat bagi digit 7 dalam nombor 5 782?", options: ["Sa", "Puluh", "Ratus", "Ribu"], answer: "Ratus", hint: "Perhatikan kedudukan digit 7 dari kanan: Sa, Puluh, Ratus, Ribu.", explanation: "Dalam 5 782: 2 ialah sa, 8 ialah puluh, 7 ialah ratus, dan 5 ialah ribu." },
+            { id: 2, topic: "NILAI TEMPAT", type: "short", question: "Tuliskan nilai digit bagi 4 dalam nombor 4 309.", options: ["4", "40", "400", "4000"], answer: "4000", hint: "Digit 4 berada di nilai tempat ribu.", explanation: "Nilai digit bagi 4 di tempat ribu ialah 4 000." },
+            { id: 3, topic: "BUNDAR NOMBOR", type: "mcq", question: "Bundarkan 3 458 kepada puluh terdekat.", options: ["3 450", "3 460", "3 500", "3 400"], answer: "3 460", hint: "Lihat digit sa (8). Jika 5 atau lebih, tambah 1 pada nilai puluh.", explanation: "Digit sa ialah 8 (>=5), jadi puluh 5 bertambah menjadi 6 ➔ 3 460." },
+            { id: 4, topic: "BUNDAR NOMBOR", type: "tf", question: "4 892 dibundarkan kepada ratus terdekat menjadi 4 900.", options: ["Betul", "Salah"], answer: "Betul", hint: "Lihat digit puluh (9).", explanation: "Digit puluh ialah 9 (>=5), jadi ratus 8 bertambah menjadi 9 ➔ 4 900." },
+            { id: 5, topic: "OPERASI TAMBAH", type: "mcq", question: "2 415 + 1 382 = ?", options: ["3 797", "3 798", "3 897", "3 697"], answer: "3 797", hint: "Tambah mengikut nilai tempat dari sa ke ribu.", explanation: "2 415 + 1 382 = 3 797." },
+            { id: 6, topic: "OPERASI TAMBAH", type: "scenario", question: "Ahmad ada 1 250 biji guli. Ali memberi 840 biji guli lagi kepadanya. Berapakah jumlah guli Ahmad?", options: ["2 090", "2 080", "2 190", "1 990"], answer: "2 090", hint: "Operasi tambah: 1 250 + 840.", explanation: "1 250 + 840 = 2 090 biji guli." },
+            { id: 7, topic: "OPERASI TOLAK", type: "mcq", question: "5 680 - 2 340 = ?", options: ["3 340", "3 340", "3 340", "3 340"], options: ["3 340", "3 240", "3 440", "3 140"], answer: "3 340", hint: "Tolak sa, puluh, ratus, dan ribu.", explanation: "5 680 - 2 340 = 3 340." },
+            { id: 8, topic: "OPERASI TOLAK", type: "tf", question: "8 000 - 3 500 = 4 500.", options: ["Betul", "Salah"], answer: "Betul", hint: "80 ratus - 35 ratus = 45 ratus.", explanation: "8 000 - 3 500 = 4 500." },
+            { id: 9, topic: "OPERASI DARAB", type: "mcq", question: "124 × 6 = ?", options: ["744", "724", "644", "754"], answer: "744", hint: "4×6=24, 2×6=12, 1×6=6.", explanation: "124 × 6 = 744." },
+            { id: 10, topic: "OPERASI DARAB", type: "short", question: "Sebuah kotak ada 100 biji pensel. Berapakah pensel dalam 8 buah kotak yang sama?", options: ["800", "80", "8000", "880"], answer: "800", hint: "8 × 100.", explanation: "8 × 100 = 800 biji pensel." },
+            { id: 11, topic: "OPERASI BAHAGI", type: "mcq", question: "48 ÷ 6 = ?", options: ["7", "8", "9", "6"], answer: "8", hint: "Ingat sifir 6: 6 × ? = 48.", explanation: "6 × 8 = 48, jadi 48 ÷ 6 = 8." },
+            { id: 12, topic: "OPERASI BAHAGI", type: "scenario", question: "Cikgu Siti mengagihkan 150 biji gula-gula secara sama rata kepada 5 buah kumpulan. Berapa biji gula-gula setiap kumpulan dapat?", options: ["25", "30", "35", "40"], answer: "30", hint: "150 ÷ 5.", explanation: "150 ÷ 5 = 30 biji gula-gula." },
+            { id: 13, topic: "TAMBAH PECAHAN", type: "mcq", question: "2/7 + 3/7 = ?", options: ["5/7", "5/14", "1/7", "6/7"], answer: "5/7", hint: "Jika penyebut sama, tambah pengangka sahaja.", explanation: "2 + 3 = 5, jadi jawapannya 5/7." },
+            { id: 14, topic: "TAMBAH PECAHAN", type: "tf", question: "1/5 + 2/5 = 3/10.", options: ["Betul", "Salah"], answer: "Salah", hint: "Penyebut kekal sama!", explanation: "Penyebut kekal 5, jadi 1/5 + 2/5 = 3/5, bukan 3/10." },
+            { id: 15, topic: "KENAL PECAHAN PERSERATUS DAN PERPULUHAN", type: "mcq", question: "Apakah bentuk perpuluhan bagi pecahan 45/100?", options: ["0.45", "4.5", "0.045", "45.0"], answer: "0.45", hint: "Dua tempat perpuluhan untuk perseratus.", explanation: "45/100 = 0.45." },
+            { id: 16, topic: "KENAL PECAHAN PERSERATUS DAN PERPULUHAN", type: "short", question: "Tulis 0.08 dalam bentuk pecahan perseratus.", options: ["8/100", "80/100", "8/10", "1/8"], answer: "8/100", hint: "0.08 mempunyai 2 digit di belakang titik.", explanation: "0.08 = 8/100." },
+            { id: 17, topic: "BANDING PERPULUHAN", type: "mcq", question: "Manakah yang lebih besar antara 0.35 dan 0.53?", options: ["0.53", "0.35", "Kedua-duanya sama", "Tiada jawapan"], answer: "0.53", hint: "Bandingkan digit di tempat persepuluh dahulu (3 vs 5).", explanation: "5 di tempat persepuluh lebih besar daripada 3, jadi 0.53 > 0.35." },
+            { id: 18, topic: "BANDING PERPULUHAN", type: "tf", question: "0.7 adalah lebih kecil daripada 0.68.", options: ["Betul", "Salah"], answer: "Salah", hint: "0.7 sama dengan 0.70.", explanation: "0.70 lebih besar daripada 0.68." },
+            { id: 19, topic: "TAMBAH PERPULUHAN", type: "mcq", question: "0.24 + 0.35 = ?", options: ["0.59", "0.69", "0.49", "0.58"], answer: "0.59", hint: "Luruskan titik perpuluhan semasa menambah.", explanation: "0.24 + 0.35 = 0.59." },
+            { id: 20, topic: "TAMBAH PERPULUHAN", type: "short", question: "1.4 + 2.3 = ?", options: ["3.7", "3.6", "3.8", "2.7"], answer: "3.7", hint: "Tambah sa dan persepuluh.", explanation: "1.4 + 2.3 = 3.7." },
+            { id: 21, topic: "TOLAK PERPULUHAN", type: "mcq", question: "0.85 - 0.42 = ?", options: ["0.43", "0.41", "0.33", "0.53"], answer: "0.43", hint: "Tolak mengikut tempat perpuluhan.", explanation: "0.85 - 0.42 = 0.43." },
+            { id: 22, topic: "TOLAK PERPULUHAN", type: "scenario", question: "Ibu ada 0.9 m reben. Dia menggunakannya 0.4 m untuk menghias hadiah. Berapa m reben yang tinggal?", options: ["0.5 m", "0.4 m", "0.6 m", "0.3 m"], answer: "0.5 m", hint: "0.9 - 0.4.", explanation: "0.9 - 0.4 = 0.5 m." },
+            { id: 23, topic: "KENAL PERATUS", type: "mcq", question: "Apakah simbol bagi peratus?", options: ["%", "$", "#", "@"], answer: "%", hint: "Simbol ini ada garis senget dan dua bulatan.", explanation: "Simbol peratus ialah %." },
+            { id: 24, topic: "KENAL PERATUS", type: "short", question: "Tukarkan 25/100 kepada peratus.", options: ["25%", "2.5%", "250%", "0.25%"], answer: "25%", hint: "Pecahan perseratus secara terus menjadi peratus.", explanation: "25/100 = 25%." },
+            { id: 25, topic: "TAMBAH WANG DAN TOLAK WANG", type: "mcq", question: "RM 150 + RM 85 = ?", options: ["RM 235", "RM 225", "RM 245", "RM 215"], answer: "RM 235", hint: "Tambah nilai ringgit.", explanation: "150 + 85 = 235." },
+            { id: 26, topic: "TAMBAH WANG DAN TOLAK WANG", type: "scenario", question: "Siti ada RM 50. Dia membeli sebuah buku bernilai RM 18. Berapakah baki wang Siti?", options: ["RM 32", "RM 38", "RM 22", "RM 42"], answer: "RM 32", hint: "RM 50 - RM 18.", explanation: "RM 50 - RM 18 = RM 32." },
+            { id: 27, topic: "NILAI TEMPAT", type: "tf", question: "Dalam nombor 9 104, digit 0 berada pada nilai tempat puluh.", options: ["Betul", "Salah"], answer: "Betul", hint: "Kedudukan kedua dari kanan.", explanation: "4 ialah sa, 0 ialah puluh." },
+            { id: 28, topic: "BUNDAR NOMBOR", type: "mcq", question: "Nombor manakah yang menjadi 6 000 apabila dibundarkan kepada ribu terdekat?", options: ["5 820", "5 200", "6 700", "5 499"], answer: "5 820", hint: "Ratus mesti 5 atau lebih untuk naik ke 6 000.", explanation: "5 820 mempunyai digit ratus 8 (>=5), dibundarkan menjadi 6 000." },
+            { id: 29, topic: "OPERASI TAMBAH", type: "short", question: "3 500 + 4 500 = ?", options: ["8 000", "7 000", "8 500", "9 000"], answer: "8 000", hint: "35 ratus + 45 ratus = 80 ratus.", explanation: "3 500 + 4 500 = 8 000." },
+            { id: 30, topic: "OPERASI TOLAK", type: "scenario", question: "Sebuah ladang memetik 4 500 biji kelapa. 1 200 biji telah dijual. Berapa biji kelapa belum dijual?", options: ["3 300", "3 200", "3 400", "2 300"], answer: "3 300", hint: "4 500 - 1 200.", explanation: "4 500 - 1 200 = 3 300 biji." },
+            { id: 31, topic: "OPERASI DARAB", type: "tf", question: "Sebarang nombor didarab dengan 0 akan menjadi 0.", options: ["Betul", "Salah"], answer: "Betul", hint: "Hukum darab dengan sifar.", explanation: "Mana-mana nombor × 0 = 0." },
+            { id: 32, topic: "OPERASI BAHAGI", type: "short", question: "81 ÷ 9 = ?", options: ["9", "8", "7", "6"], answer: "9", hint: "9 × 9 = 81.", explanation: "81 ÷ 9 = 9." },
+            { id: 33, topic: "TAMBAH PECAHAN", type: "mcq", question: "3/10 + 4/10 = ?", options: ["7/10", "7/20", "1/10", "8/10"], answer: "7/10", hint: "3 + 4 = 7.", explanation: "3/10 + 4/10 = 7/10." },
+            { id: 34, topic: "KENAL PECAHAN PERSERATUS DAN PERPULUHAN", type: "tf", question: "7/100 ditulis sebagai 0.7 dalam perpuluhan.", options: ["Betul", "Salah"], answer: "Salah", hint: "7/100 ada dua tempat perpuluhan (0.07).", explanation: "7/100 = 0.07. Manakala 0.7 = 7/10." },
+            { id: 35, topic: "BANDING PERPULUHAN", type: "short", question: "Susun mengikut urutan menaik: 0.12, 0.81, 0.05", options: ["0.05, 0.12, 0.81", "0.81, 0.12, 0.05", "0.12, 0.05, 0.81", "0.05, 0.81, 0.12"], answer: "0.05, 0.12, 0.81", hint: "Cari yang paling kecil dahulu.", explanation: "0.05 < 0.12 < 0.81." },
+            { id: 36, topic: "TAMBAH PERPULUHAN", type: "scenario", question: "Ali lari 1.2 km pagi dan 2.5 km petang. Berapa jumlah jarak lariannya?", options: ["3.7 km", "3.5 km", "2.7 km", "3.8 km"], answer: "3.7 km", hint: "1.2 + 2.5.", explanation: "1.2 + 2.5 = 3.7 km." },
+            { id: 37, topic: "TOLAK PERPULUHAN", type: "short", question: "5.8 - 2.3 = ?", options: ["3.5", "3.3", "2.5", "3.2"], answer: "3.5", hint: "5 - 2 = 3, 0.8 - 0.3 = 0.5.", explanation: "5.8 - 2.3 = 3.5." },
+            { id: 38, topic: "KENAL PERATUS", type: "mcq", question: "70 peratus ditulis dalam perkataan sebagai:", options: ["70%", "Tujuh puluh peratus", "Tujuh peratus", "Tujuh ratus peratus"], answer: "Tujuh puluh peratus", hint: "Sebutan bagi 70%.", explanation: "70% disebut sebagai Tujuh puluh peratus." },
+            { id: 39, topic: "TAMBAH WANG DAN TOLAK WANG", type: "tf", question: "RM 100 - RM 45.50 = RM 54.50.", options: ["Betul", "Salah"], answer: "Betul", hint: "100.00 - 45.50 = 54.50.", explanation: "RM 100.00 - RM 45.50 = RM 54.50." },
+            { id: 40, topic: "TAMBAH WANG DAN TOLAK WANG", type: "scenario", question: "Muthu ada RM 200. Dia membeli kasut RM 80 dan baju RM 50. Berapa baki wang Muthu?", options: ["RM 70", "RM 80", "RM 60", "RM 50"], answer: "RM 70", hint: "RM 200 - RM 80 - RM 50.", explanation: "RM 200 - RM 130 = RM 70." }
+        ];
 
-      // Operasi Tambah
-      {
-        id: 7,
-        topic: "Operasi Tambah",
-        type: "SHORT",
-        question: "Kira hasil tambah: 2 415 + 1 382 =",
-        options: ["3 797", "3 790", "3 897", "3 697"],
-        answer: "3 797",
-        explanation: "2 415 + 1 382 = 3 797.",
-        hint: "Tambah mengikut nilai tempat dari sa ke ribu."
-      },
-      {
-        id: 8,
-        topic: "Operasi Tambah",
-        type: "MCQ",
-        question: " Hitung: 4 820 + 2 150 + 310 =",
-        options: ["7 180", "7 280", "7 380", "7 080"],
-        answer: "7 280",
-        explanation: "4 820 + 2 150 = 6 970; kemudian 6 970 + 310 = 7 280.",
-        hint: "Tambah dua nombor pertama dahulu, kemudian tambah nombor ketiga."
-      },
-      {
-        id: 9,
-        topic: "Operasi Tambah",
-        type: "SCENARIO",
-        question: "Ali ada 1 250 biji guli, manakala Ahmad ada 840 biji guli. Berapakah jumlah guli mereka kesemuanya?",
-        options: ["2 090", "2 050", "2 190", "1 990"],
-        answer: "2 090",
-        explanation: "Jumlah guli = 1 250 + 840 = 2 090 biji guli.",
-        hint: "Kata kunci 'jumlah' menunjukkan operasi tambah."
-      },
-
-      // Operasi Tolak
-      {
-        id: 10,
-        topic: "Operasi Tolak",
-        type: "MCQ",
-        question: "8 954 - 3 421 =",
-        options: ["5 533", "5 523", "5 433", "5 534"],
-        answer: "5 533",
-        explanation: "8 954 - 3 421 = 5 533.",
-        hint: "Tolak mengikut nilai tempat dari kanan ke kiri."
-      },
-      {
-        id: 11,
-        topic: "Operasi Tolak",
-        type: "SHORT",
-        question: "Cari beza antara 6 000 dan 2 450.",
-        options: ["3 550", "3 650", "3 450", "4 550"],
-        answer: "3 550",
-        explanation: "Beza = 6 000 - 2 450 = 3 550.",
-        hint: "'Beza' bermaksud operasi tolak."
-      },
-      {
-        id: 12,
-        topic: "Operasi Tolak",
-        type: "SCENARIO",
-        question: "Sebuah kilang menghasilkan 4 500 botol jus. 1 230 botol telah dijual. Berapakah baki botol jus yang belum dijual?",
-        options: ["3 270", "3 370", "3 170", "3 250"],
-        answer: "3 270",
-        explanation: "Baki botol jus = 4 500 - 1 230 = 3 270 botol.",
-        hint: "'Baki' menunjukkan operasi tolak."
-      },
-
-      // Operasi Darab
-      {
-        id: 13,
-        topic: "Operasi Darab",
-        type: "MCQ",
-        question: "234 x 6 =",
-        options: ["1 404", "1 304", "1 414", "1 204"],
-        answer: "1 404",
-        explanation: "234 x 6 = 1 404.",
-        hint: "Darabkan sa (4x6=24), puluh (3x6+2=20), dan ratus (2x6+2=14)."
-      },
-      {
-        id: 14,
-        topic: "Operasi Darab",
-        type: "SHORT",
-        question: "45 x 100 =",
-        options: ["4 500", "450", "45 000", "4 050"],
-        answer: "4 500",
-        explanation: "Mendarab dengan 100 hanya perlu menambah dua sifar di belakang: 45 x 100 = 4 500.",
-        hint: "Satu cara mudah: tambah dua sifar di belakang nombor 45."
-      },
-      {
-        id: 15,
-        topic: "Operasi Darab",
-        type: "SCENARIO",
-        question: "Sebuah kotak mengandungi 8 pensel. Berapakah jumlah pensel dalam 12 kotak yang sama?",
-        options: ["96", "86", "106", "92"],
-        answer: "96",
-        explanation: "Jumlah pensel = 12 x 8 = 96 pensel.",
-        hint: "Gunakan sifir 8 atau sifir 12."
-      },
-
-      // Operasi Bahagi
-      {
-        id: 16,
-        topic: "Operasi Bahagi",
-        type: "MCQ",
-        question: "482 ÷ 2 =",
-        options: ["241", "240", "242", "231"],
-        answer: "241",
-        explanation: "482 ÷ 2 = 241.",
-        hint: "Bahagikan setiap digit dengan 2: 4÷2=2, 8÷2=4, 2÷2=1."
-      },
-      {
-        id: 17,
-        topic: "Operasi Bahagi",
-        type: "SHORT",
-        question: "3 600 ÷ 100 =",
-        options: ["36", "360", "3.6", "3 600"],
-        answer: "36",
-        explanation: "Membahagi dengan 100 potong dua sifar di belakang: 3 600 ÷ 100 = 36.",
-        hint: "Potong dua digit sifar dari belakang."
-      },
-      {
-        id: 18,
-        topic: "Operasi Bahagi",
-        type: "SCENARIO",
-        question: "Ibu mengagihkan 120 biji kuih secara sama banyak kepada 4 buah pinggan. Berapakah biji kuih dalam setiap pinggan?",
-        options: ["30", "40", "25", "35"],
-        answer: "30",
-        explanation: "Setiap pinggan = 120 ÷ 4 = 30 biji kuih.",
-        hint: "'Sama banyak' bermaksud operasi bahagi."
-      },
-      {
-        id: 19,
-        topic: "Operasi Bahagi",
-        type: "TRUE_FALSE",
-        question: "Jika 7 x 8 = 56, maka 56 ÷ 8 = 7.",
-        options: ["Betul", "Salah"],
-        answer: "Betul",
-        explanation: "Operasi bahagi ialah songsangan bagi operasi darab.",
-        hint: "Hubungan antara darab dan bahagi."
-      },
-
-      // Tambah Pecahan
-      {
-        id: 20,
-        topic: "Tambah Pecahan",
-        type: "MCQ",
-        question: "2/7 + 3/7 =",
-        options: ["5/7", "5/14", "6/7", "1/7"],
-        answer: "5/7",
-        explanation: "Apabila penyebut sama, tambah pengangka sahaja: 2 + 3 = 5, jadi 5/7.",
-        hint: "Tambah nombor di atas sahaja, penyebut di bawah kekal sama."
-      },
-      {
-        id: 21,
-        topic: "Tambah Pecahan",
-        type: "SHORT",
-        question: "1/4 + 2/4 =",
-        options: ["3/4", "3/8", "1/2", "2/4"],
-        answer: "3/4",
-        explanation: "1/4 + 2/4 = 3/4.",
-        hint: "Tambah pengangka (1 + 2)."
-      },
-      {
-        id: 22,
-        topic: "Tambah Pecahan",
-        type: "TRUE_FALSE",
-        question: "Adakah 3/10 + 4/10 = 7/20 ?",
-        options: ["Betul", "Salah"],
-        answer: "Salah",
-        explanation: "Penyebut tidak boleh ditambah! Jawapan yang betul ialah 7/10.",
-        hint: "Adakah penyebut di bawah perlu ditambah?"
-      },
-
-      // Kenal Pecahan Perseratus dan Perpuluhan
-      {
-        id: 23,
-        topic: "Kenal Pecahan Perseratus dan Perpuluhan",
-        type: "MCQ",
-        question: "Tukarkan pecahan 45/100 kepada nombor perpuluhan.",
-        options: ["0.45", "4.5", "0.045", "45.0"],
-        answer: "0.45",
-        explanation: "45/100 bermaksud 45 per seratus iaitu 0.45.",
-        hint: "Pecahan per seratus ada 2 tempat perpuluhan."
-      },
-      {
-        id: 24,
-        topic: "Kenal Pecahan Perseratus dan Perpuluhan",
-        type: "SCENARIO",
-        question: "Gambar rajah petak seratus menunjukkan 68 petak diwarnakan. Apakah nombor perpuluhan bagi bahagian berwarna itu?",
-        options: ["0.68", "6.8", "0.068", "68.0"],
-        answer: "0.68",
-        explanation: "68 daripada 100 petak = 68/100 = 0.68.",
-        hint: "68 petak daripada 100 = 0. Enam Lapan."
-      },
-      {
-        id: 25,
-        topic: "Kenal Pecahan Perseratus dan Perpuluhan",
-        type: "SHORT",
-        question: "Tulis 'kosong titik kosong sembilan' dalam bentuk pecahan perseratus.",
-        options: ["9/100", "90/100", "9/10", "99/100"],
-        answer: "9/100",
-        explanation: "0.09 mempunyai 2 tempat perpuluhan dengan digit 9 di rumah perseratus = 9/100.",
-        hint: "0.09 = 9 daripada 100."
-      },
-
-      // Banding Perpuluhan
-      {
-        id: 26,
-        topic: "Banding Perpuluhan",
-        type: "MCQ",
-        question: "Antara nombor perpuluhan berikut, yang manakah LEBIH BESAR?",
-        options: ["0.53", "0.35", "0.05", "0.30"],
-        answer: "0.53",
-        explanation: "Bandingkan nilai tempat persepuluh: 5 adalah lebih besar daripada 3.",
-        hint: "Lihat digit pertama selepas titik perpuluhan."
-      },
-      {
-        id: 27,
-        topic: "Banding Perpuluhan",
-        type: "TRUE_FALSE",
-        question: "0.7 adalah lebih kecil daripada 0.07.",
-        options: ["Betul", "Salah"],
-        answer: "Salah",
-        explanation: "0.7 = 0.70 yang lebih besar daripada 0.07.",
-        hint: "0.7 ada 7 persepuluh, manakala 0.07 ada 7 perseratus."
-      },
-
-      // Tambah Perpuluhan
-      {
-        id: 28,
-        topic: "Tambah Perpuluhan",
-        type: "MCQ",
-        question: "0.24 + 0.35 =",
-        options: ["0.59", "0.69", "0.49", "0.58"],
-        answer: "0.59",
-        explanation: "0.24 + 0.35 = 0.59.",
-        hint: "Pastikan titik perpuluhan selari semasa menambah."
-      },
-      {
-        id: 29,
-        topic: "Tambah Perpuluhan",
-        type: "SHORT",
-        question: "0.6 + 0.28 =",
-        options: ["0.88", "0.34", "0.98", "0.80"],
-        answer: "0.88",
-        explanation: "0.60 + 0.28 = 0.88.",
-        hint: "Tulis 0.6 sebagai 0.60 untuk memudahkan penambahan."
-      },
-      {
-        id: 30,
-        topic: "Tambah Perpuluhan",
-        type: "SCENARIO",
-        question: "Siti ada 0.45 meter pita. Dia membeli 0.3 meter pita lagi. Berapakah jumlah panjang pita Siti?",
-        options: ["0.75 m", "0.48 m", "0.78 m", "0.15 m"],
-        answer: "0.75 m",
-        explanation: "0.45 m + 0.30 m = 0.75 m.",
-        hint: "0.3 m sama nilainya dengan 0.30 m."
-      },
-
-      // Tolak Perpuluhan
-      {
-        id: 31,
-        topic: "Tolak Perpuluhan",
-        type: "MCQ",
-        question: "0.89 - 0.45 =",
-        options: ["0.44", "0.34", "0.54", "0.45"],
-        answer: "0.44",
-        explanation: "0.89 - 0.45 = 0.44.",
-        hint: "Tolak perseratus kemudian persepuluh."
-      },
-      {
-        id: 32,
-        topic: "Tolak Perpuluhan",
-        type: "SHORT",
-        question: "0.7 - 0.25 =",
-        options: ["0.45", "0.55", "0.35", "0.50"],
-        answer: "0.45",
-        explanation: "0.70 - 0.25 = 0.45.",
-        hint: "Tukarkan 0.7 kepada 0.70 sebelum menolak 0.25."
-      },
-      {
-        id: 33,
-        topic: "Tolak Perpuluhan",
-        type: "SCENARIO",
-        question: "Sebuah bekas ada 0.95 liter jus. Amir minum 0.40 liter jus itu. Berapakah baki jus dalam bekas?",
-        options: ["0.55 liter", "0.45 liter", "0.65 liter", "0.50 liter"],
-        answer: "0.55 liter",
-        explanation: "0.95 - 0.40 = 0.55 liter.",
-        hint: "'Baki' bermaksud operasi tolak."
-      },
-
-      // Kenal Peratus
-      {
-        id: 34,
-        topic: "Kenal Peratus",
-        type: "MCQ",
-        question: "Tukarkan pecahan 25/100 kepada peratus.",
-        options: ["25%", "2.5%", "250%", "0.25%"],
-        answer: "25%",
-        explanation: "25/100 bermaksud 25 peratus (25%).",
-        hint: "Peratus bermaksud per seratus."
-      },
-      {
-        id: 35,
-        topic: "Kenal Peratus",
-        type: "TRUE_FALSE",
-        question: "Simbol % dinamakan sebagai 'peratus'.",
-        options: ["Betul", "Salah"],
-        answer: "Betul",
-        explanation: "Simbol % ialah simbol rasmi bagi peratus.",
-        hint: "Pernahkah anda melihat simbol % dalam peratusan?"
-      },
-      {
-        id: 36,
-        topic: "Kenal Peratus",
-        type: "SHORT",
-        question: "Tulis 'tujuh puluh lima peratus' dalam bentuk angka dan simbol.",
-        options: ["75%", "57%", "7.5%", "750%"],
-        answer: "75%",
-        explanation: "Tujuh puluh lima = 75, peratus = %.",
-        hint: "Tulis nombor 75 diikuti simbol %."
-      },
-      {
-        id: 37,
-        topic: "Kenal Peratus",
-        type: "SCENARIO",
-        question: "Dalam satu ujian 100 soalan, Sarah mendapat 82 soalan betul. Berapakah peratus markah Sarah?",
-        options: ["82%", "18%", "8.2%", "820%"],
-        answer: "82%",
-        explanation: "82 betul daripada 100 soalan = 82/100 = 82%.",
-        hint: "82 per 100 = 82 peratus."
-      },
-
-      // Tambah Wang & Tolak Wang
-      {
-        id: 38,
-        topic: "Tambah Wang dan Tolak Wang",
-        type: "MCQ",
-        question: "RM 145.50 + RM 230.20 =",
-        options: ["RM 375.70", "RM 375.50", "RM 385.70", "RM 365.70"],
-        answer: "RM 375.70",
-        explanation: "RM 145.50 + RM 230.20 = RM 375.70.",
-        hint: "Tambah nilai sen dahulu, kemudian nilai ringgit."
-      },
-      {
-        id: 39,
-        topic: "Tambah Wang dan Tolak Wang",
-        type: "SHORT",
-        question: "RM 500 - RM 185.40 =",
-        options: ["RM 314.60", "RM 324.60", "RM 314.40", "RM 315.60"],
-        answer: "RM 314.60",
-        explanation: "RM 500.00 - RM 185.40 = RM 314.60.",
-        hint: "Tulis RM 500 sebagai RM 500.00 sebelum menolak."
-      },
-      {
-        id: 40,
-        topic: "Tambah Wang dan Tolak Wang",
-        type: "SCENARIO",
-        question: "Siti ada RM 100. Dia membeli sebuah buku berharga RM 32.50 dan pensel berharga RM 7.50. Berapakah baki wang Siti?",
-        options: ["RM 60.00", "RM 40.00", "RM 65.00", "RM 70.00"],
-        answer: "RM 60.00",
-        explanation: "Jumlah belanja = RM 32.50 + RM 7.50 = RM 40.00. Baki wang = RM 100.00 - RM 40.00 = RM 60.00.",
-        hint: "Hitung jumlah belanja dahulu, kemudian tolak daripada RM 100."
-      }
-    ];
-
-    // Fungsi pengacakan array (Fisher-Yates Shuffle)
-    function shuffleArray(array) {
-      const arr = [...array];
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    }
-
-    // Bunyi maklum balas ringkas
-    function playAudio(type) {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        if (type === 'correct') {
-          osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-          osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
-          gain.gain.setValueAtTime(0.2, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-          osc.start(ctx.currentTime);
-          osc.stop(ctx.currentTime + 0.3);
-        } else {
-          osc.frequency.setValueAtTime(220, ctx.currentTime); // A3
-          osc.frequency.setValueAtTime(180, ctx.currentTime + 0.15);
-          gain.gain.setValueAtTime(0.2, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-          osc.start(ctx.currentTime);
-          osc.stop(ctx.currentTime + 0.3);
-        }
-      } catch (e) {
-        // Abaikan jika tidak disokong pelayar
-      }
-    }
-
-    function App() {
-      // Mod Sistem: 'HOME', 'STUDENT_LOGIN', 'QUIZ', 'RESULT', 'TEACHER_LOGIN', 'TEACHER_DASHBOARD'
-      const [mode, setMode] = useState('HOME');
-      
-      // Maklumat Murid
-      const [studentName, setStudentName] = useState('');
-      const [studentClass, setStudentClass] = useState(KELAS_LIST[0]);
-      
-      // Data Kuiz
-      const [questions, setQuestions] = useState([]);
-      const [currentIndex, setCurrentIndex] = useState(0);
-      const [selectedOption, setSelectedOption] = useState(null);
-      const [isSubmitted, setIsSubmitted] = useState(false);
-      const [showHint, setShowHint] = useState(false);
-      const [userAnswers, setUserAnswers] = useState({}); // { qId: { selected, isCorrect, attempts } }
-      const [score, setScore] = useState(0);
-      
-  // Kata Laluan Guru
-  const [teacherPassword, setTeacherPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-
-  // Google Script Web App URL untuk Database Google Drive
-  const [googleScriptUrl, setGoogleScriptUrl] = useState(() => {
-    return "https://script.google.com/macros/s/AKfycbzxuCh2iL4hEDfyV1zm8xKQB2b1I4W3Zgm-1EDHO01pi1yNDoxHx0I_UTEzO56FV-LkRw/exec";
-  });
-  const [saveUrlSuccess, setSaveUrlSuccess] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  // Rekod Guru daripada LocalStorage / Google Sheet
-  const [records, setRecords] = useState([]);
-
-  // Fungsi Tarik Data dari Google Sheet ke Mod Guru
-  const fetchRecordsFromSheet = () => {
-    if (!googleScriptUrl) return;
-    setIsSyncing(true);
-    fetch(googleScriptUrl)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setRecords(data);
-          localStorage.setItem('m3_quiz_records', JSON.stringify(data));
-        }
-        setIsSyncing(false);
-      })
-      .catch(err => {
-        console.error("Gagal menarik data dari Google Sheet:", err);
-        setIsSyncing(false);
-      });
-  };
-
-  // Muat data automatik setiap kali Mod Guru dibuka
-  useEffect(() => {
-    const saved = localStorage.getItem('m3_quiz_records');
-    if (saved) {
-      try { setRecords(JSON.parse(saved)); } catch (e) {}
-    }
-    fetchRecordsFromSheet();
-  }, []);
-
-  const saveRecordToStorage = (newRecord) => {
-    const updated = [newRecord, ...records];
-    setRecords(updated);
-    localStorage.setItem('m3_quiz_records', JSON.stringify(updated));
-
-    // Hantar ke Google Sheet jika URL dikonfigurasi
-    if (googleScriptUrl.trim()) {
-      setIsSyncing(true);
-      fetch(googleScriptUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          name: newRecord.name,
-          class: newRecord.class,
-          score: newRecord.score,
-          total: newRecord.total,
-          percentage: newRecord.percentage
-        })
-      })
-      .then(() => {
-        setIsSyncing(false);
-        setTimeout(fetchRecordsFromSheet, 1000); // Kemaskini semula senarai selepas 1 saat
-      })
-      .catch(err => {
-        console.error("Error sending data:", err);
-        setIsSyncing(false);
-      });
-    }
-  };
-
-      const handleSaveGoogleUrl = (e) => {
-        e.preventDefault();
-        localStorage.setItem('m3_google_script_url', googleScriptUrl);
-        setSaveUrlSuccess(true);
-        setTimeout(() => setSaveUrlSuccess(false), 3000);
-      };
-
-      const clearAllRecords = () => {
-        if (confirm("Adakah anda pasti untuk memadam SEMUA rekod keputusan murid?")) {
-          setRecords([]);
-          localStorage.removeItem('m3_quiz_records');
-          alert("Semua rekod telah dipadamkan!");
-        }
-      };
-
-      // Mula Kuiz Baru
-      const handleStartQuiz = (e) => {
-        e.preventDefault();
-        if (!studentName.trim()) {
-          alert("Sila masukkan nama anda!");
-          return;
-        }
-
-        // Rawakkan soalan dan pilihan jawapan untuk setiap soalan
-        const randomized = RAW_QUESTIONS.map(q => ({
-          ...q,
-          shuffledOptions: shuffleArray(q.options)
-        }));
-
-        setQuestions(randomized);
-        setCurrentIndex(0);
-        setSelectedOption(null);
-        setIsSubmitted(false);
-        setShowHint(false);
-        setUserAnswers({});
-        setScore(0);
-        setMode('QUIZ');
-      };
-
-      // Semak Jawapan
-      const handleCheckAnswer = () => {
-        if (!selectedOption) return;
-
-        const currentQ = questions[currentIndex];
-        const isCorrect = selectedOption === currentQ.answer;
-
-        setIsSubmitted(true);
-        if (isCorrect) {
-          playAudio('correct');
-          if (!userAnswers[currentQ.id]) {
-            setScore(prev => prev + 1);
-          }
-        } else {
-          playAudio('wrong');
-          setShowHint(true);
-        }
-
-        setUserAnswers(prev => ({
-          ...prev,
-          [currentQ.id]: {
-            selected: selectedOption,
-            isCorrect: isCorrect,
-            attempts: (prev[currentQ.id]?.attempts || 0) + 1
-          }
-        }));
-      };
-
-      // Soalan Seterusnya
-      const handleNextQuestion = () => {
-        if (currentIndex + 1 < questions.length) {
-          setCurrentIndex(prev => prev + 1);
-          setSelectedOption(null);
-          setIsSubmitted(false);
-          setShowHint(false);
-        } else {
-          // Tamat Kuiz
-          const finalScore = score;
-          const percentage = Math.round((finalScore / questions.length) * 100);
-          
-          // Simpan rekod
-          const newRecord = {
-            id: Date.now(),
-            name: studentName,
-            class: studentClass,
-            score: finalScore,
-            total: questions.length,
-            percentage: percentage,
-            date: new Date().toLocaleDateString('ms-MY', {
-              day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-            })
-          };
-
-          saveRecordToStorage(newRecord);
-          setMode('RESULT');
-
-          if (percentage >= 80) {
-            confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
-          }
-        }
-      };
-
-      // Cuba Lagi untuk soalan salah
-      const handleTryAgain = () => {
-        setSelectedOption(null);
-        setIsSubmitted(false);
-      };
-
-      // Login Guru
-      const handleTeacherLogin = (e) => {
-        e.preventDefault();
-        if (teacherPassword === '5555') {
-          setPasswordError('');
-          setTeacherPassword('');
-          setMode('TEACHER_DASHBOARD');
-        } else {
-          setPasswordError('Kata laluan salah! Sila cuba lagi.');
-        }
-      };
-
-      // Export Ke Excel (CSV Format)
-      const handleDownloadExcel = () => {
-        if (records.length === 0) {
-          alert("Tiada rekod untuk dimuat turun.");
-          return;
-        }
-
-        let csvContent = "\uFEFFNama Murid,Kelas,Tarikh & Masa,Markah,Jumlah Soalan,Peratus (%)\n";
-        records.forEach(r => {
-          const nameClean = `"${r.name.replace(/"/g, '""')}"`;
-          csvContent += `${nameClean},${r.class},"${r.date}",${r.score},${r.total},${r.percentage}%\n`;
-        });
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Rekod_Keputusan_Matematik_Tahun3_${new Date().toISOString().slice(0,10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      };
-
-      // Cetak Laporan
-      const handlePrint = () => {
-        window.print();
-      };
-
-      // Analisis Prestasi Topik Murid
-      const topicAnalysis = useMemo(() => {
-        if (mode !== 'RESULT' || questions.length === 0) return [];
-        
-        const summary = {};
-        questions.forEach(q => {
-          if (!summary[q.topic]) {
-            summary[q.topic] = { total: 0, correct: 0 };
-          }
-          summary[q.topic].total += 1;
-          if (userAnswers[q.id]?.isCorrect) {
-            summary[q.topic].correct += 1;
-          }
-        });
-
-        return Object.keys(summary).map(topic => ({
-          topic,
-          correct: summary[topic].correct,
-          total: summary[topic].total,
-          percentage: Math.round((summary[topic].correct / summary[topic].total) * 100)
-        }));
-      }, [mode, questions, userAnswers]);
-
-      // Topik Disarankan Ulang Kaji
-      const revisionRecommendations = useMemo(() => {
-        return topicAnalysis.filter(t => t.percentage < 70);
-      }, [topicAnalysis]);
-
-      return (
-        <div className="min-h-screen flex flex-col justify-between">
-          
-          {/* HEADER / NAVBAR */}
-          <header className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md p-4 no-print">
-            <div className="max-w-4xl mx-auto flex justify-between items-center">
-              <div 
-                className="flex items-center gap-3 cursor-pointer" 
-                onClick={() => setMode('HOME')}
-              >
-                <div className="bg-yellow-400 text-blue-900 w-10 h-10 rounded-full flex items-center justify-center font-bold text-xl shadow">
-                  <i className="fa-solid fa-calculator"></i>
-                </div>
-                <div>
-                  <h1 className="text-xl md:text-2xl font-bold tracking-wide">Kuiz Matematik Tahun 3</h1>
-                  <p className="text-xs text-blue-100">Interaktif • Ceria • Pintar</p>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setMode('HOME')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${
-                    mode === 'HOME' || mode === 'STUDENT_LOGIN' ? 'bg-white text-blue-700 shadow' : 'bg-blue-800 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  <i className="fa-solid fa-graduation-cap mr-1"></i> Mod Murid
-                </button>
-                <button
-                  onClick={() => setMode('TEACHER_LOGIN')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${
-                    mode === 'TEACHER_LOGIN' || mode === 'TEACHER_DASHBOARD' ? 'bg-yellow-400 text-blue-900 shadow' : 'bg-blue-800 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  <i className="fa-solid fa-user-tie mr-1"></i> Mod Guru
-                </button>
-              </div>
-            </div>
-          </header>
-
-          {/* MAIN CONTENT AREA */}
-          <main className="max-w-4xl w-full mx-auto p-4 flex-grow">
+        function App() {
+            const [mode, setMode] = useState('student'); // 'student' or 'teacher'
+            const [studentName, setStudentName] = useState('');
+            const [studentClass, setStudentClass] = useState(KELAS_LIST[0]);
+            const [isQuizStarted, setIsQuizStarted] = useState(false);
             
-            {/* 1. SKRIN UTAMA / HOME */}
-            {mode === 'HOME' && (
-              <div className="bg-white rounded-3xl p-6 md:p-10 shadow-xl border-4 border-blue-100 text-center space-y-6 mt-4">
-                <div className="inline-block bg-yellow-100 text-yellow-800 px-4 py-1.5 rounded-full text-sm font-bold tracking-wide">
-                  ✨ Latihan Topikal Kurikulum Standard Sekolah Rendah (KSSR)
-                </div>
-                
-                <h2 className="text-3xl md:text-4xl font-extrabold text-blue-900">
-                  Selamat Datang ke Dunia Matematik Ceria! 🚀
-                </h2>
+            // Quiz State
+            const [currentQIndex, setCurrentQIndex] = useState(0);
+            const [shuffledQuestions, setShuffledQuestions] = useState([]);
+            const [selectedAnswer, setSelectedAnswer] = useState('');
+            const [isSubmitted, setIsSubmitted] = useState(false);
+            const [isCorrect, setIsCorrect] = useState(null);
+            const [score, setScore] = useState(0);
+            const [quizCompleted, setQuizCompleted] = useState(false);
+            const [userAnswersHistory, setUserAnswersHistory] = useState([]);
 
-                <p className="text-gray-600 max-w-xl mx-auto leading-relaxed">
-                  Uji pemahaman anda dalam 13 topik Matematik Tahun 3 menerusi <b>40 Soalan Interaktif</b> secara santai dan menyeronokkan!
-                </p>
+            // Teacher Mode
+            const [passwordInput, setPasswordInput] = useState('');
+            const [isTeacherAuthenticated, setIsTeacherAuthenticated] = useState(false);
+            const [records, setRecords] = useState([]);
+            const [fetchStatus, setFetchStatus] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
 
-                {/* Tajuk Topik */}
-                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200">
-                  <h3 className="text-md font-bold text-blue-800 mb-3 flex items-center justify-center gap-2">
-                    <i className="fa-solid fa-book-open"></i> Topik-topik yang Diuji:
-                  </h3>
-                  <div className="flex flex-wrap justify-center gap-2 text-xs md:text-sm">
-                    {[
-                      "Nilai Tempat", "Bundar Nombor", "Operasi Tambah", "Operasi Tolak",
-                      "Operasi Darab", "Operasi Bahagi", "Tambah Pecahan", "Kenal Pecahan Perseratus & Perpuluhan",
-                      "Banding Perpuluhan", "Tambah Perpuluhan", "Tolak Perpuluhan", "Kenal Peratus", "Tambah & Tolak Wang"
-                    ].map((topic, i) => (
-                      <span key={i} className="bg-white text-indigo-700 border border-indigo-200 px-3 py-1 rounded-full font-semibold shadow-sm">
-                        {topic}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+            // Fetch records from Google Script
+            const fetchFromSheet = () => {
+                setIsLoading(true);
+                setFetchStatus('Sedang menarik rekod dari Google Sheet...');
+                fetch(GOOGLE_SCRIPT_URL)
+                    .then(res => res.json())
+                    .then(data => {
+                        setIsLoading(false);
+                        if (Array.isArray(data)) {
+                            setRecords(data);
+                            setFetchStatus(`✅ Berjaya memuatkan ${data.length} rekod dari Google Sheet!`);
+                        } else if (data && data.status === "error") {
+                            setFetchStatus(`⚠️ Ralat Google Script: ${data.message}`);
+                        } else {
+                            setFetchStatus("⚠️ Format data tidak sah.");
+                        }
+                    })
+                    .catch(err => {
+                        setIsLoading(false);
+                        setFetchStatus(`⚠️ Gagal berhubung: ${err.message}. Sila pastikan New Deployment telah dibuat di Apps Script.`);
+                    });
+            };
 
-                <div className="pt-2">
-                  <button
-                    onClick={() => setMode('STUDENT_LOGIN')}
-                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg md:text-xl px-8 py-4 rounded-2xl shadow-lg transform hover:-translate-y-1 transition duration-200 flex items-center justify-center gap-3 mx-auto"
-                  >
-                    <i className="fa-solid fa-play text-yellow-300 text-2xl"></i> Mula Kuiz Sekarang
-                  </button>
-                </div>
-              </div>
-            )}
+            useEffect(() => {
+                if (mode === 'teacher' && isTeacherAuthenticated) {
+                    fetchFromSheet();
+                }
+            }, [mode, isTeacherAuthenticated]);
 
-            {/* 2. SKRIN PENDAFTARAN MURID */}
-            {mode === 'STUDENT_LOGIN' && (
-              <div className="max-w-md mx-auto bg-white rounded-3xl p-6 md:p-8 shadow-xl border-4 border-indigo-100 mt-6">
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-3">
-                    <i className="fa-solid fa-id-card"></i>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-800">Maklumat Murid</h2>
-                  <p className="text-xs text-gray-500 mt-1">Sila isi nama dan pilih kelas anda sebelum bermula.</p>
-                </div>
+            // Shuffle answers on each question load
+            const startQuiz = () => {
+                if (!studentName.trim()) {
+                    alert('Sila masukkan Nama Murid terlebih dahulu.');
+                    return;
+                }
+                const prepared = SOALAN_DATABASE.map(q => {
+                    const opts = [...q.options];
+                    for (let i = opts.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [opts[i], opts[j]] = [opts[j], opts[i]];
+                    }
+                    return { ...q, shuffledOptions: opts };
+                });
+                setShuffledQuestions(prepared);
+                setCurrentQIndex(0);
+                setScore(0);
+                setUserAnswersHistory([]);
+                setIsQuizStarted(true);
+                setQuizCompleted(false);
+            };
 
-                <form onSubmit={handleStartQuiz} className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Nama Murid: <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: Amirah Husna"
-                      value={studentName}
-                      onChange={(e) => setStudentName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none text-gray-800 font-semibold transition"
-                    />
-                  </div>
+            const handleAnswerSubmit = () => {
+                if (!selectedAnswer) return;
+                const q = shuffledQuestions[currentQIndex];
+                const correct = selectedAnswer === q.answer;
+                setIsCorrect(correct);
+                setIsSubmitted(true);
+                if (correct) setScore(prev => prev + 1);
 
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Kelas: <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={studentClass}
-                      onChange={(e) => setStudentClass(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none text-gray-800 font-semibold bg-white transition cursor-pointer"
-                    >
-                      {KELAS_LIST.map((k, idx) => (
-                        <option key={idx} value={k}>{k}</option>
-                      ))}
-                    </select>
-                  </div>
+                setUserAnswersHistory(prev => [...prev, {
+                    topic: q.topic,
+                    question: q.question,
+                    isCorrect: correct
+                }]);
+            };
 
-                  <div className="pt-2 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setMode('HOME')}
-                      className="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl transition"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      type="submit"
-                      className="w-2/3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2"
-                    >
-                      Mula Ujian <i className="fa-solid fa-arrow-right"></i>
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
+            const handleNextQuestion = () => {
+                setSelectedAnswer('');
+                setIsSubmitted(false);
+                setIsCorrect(null);
+                if (currentQIndex + 1 < shuffledQuestions.length) {
+                    setCurrentQIndex(prev => prev + 1);
+                } else {
+                    finishQuiz();
+                }
+            };
 
-            {/* 3. SKRIN SOALAN KUIZ */}
-            {mode === 'QUIZ' && questions.length > 0 && (
-              <div className="space-y-4">
-                
-                {/* Bar Kemajuan & Profil Ringkas */}
-                <div className="bg-white p-4 rounded-2xl shadow border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-3">
-                  <div className="flex items-center gap-3 w-full md:w-auto">
-                    <span className="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-200">
-                      👤 {studentName} ({studentClass})
-                    </span>
-                    <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-lg border border-yellow-200">
-                      🏆 Markah: {score}
-                    </span>
-                  </div>
+            const finishQuiz = () => {
+                setQuizCompleted(true);
+                const finalScore = score + (isCorrect ? 1 : 0);
+                const pct = Math.round((finalScore / SOALAN_DATABASE.length) * 100);
 
-                  {/* Visual Progress Bar */}
-                  <div className="w-full md:w-64">
-                    <div className="flex justify-between text-xs font-bold text-gray-500 mb-1">
-                      <span>Soalan {currentIndex + 1} daripada {questions.length}</span>
-                      <span>{Math.round(((currentIndex + 1) / questions.length) * 100)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full transition-all duration-300"
-                        style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
+                const studentData = {
+                    name: studentName,
+                    class: studentClass,
+                    score: finalScore,
+                    total: SOALAN_DATABASE.length,
+                    percentage: pct
+                };
 
-                {/* Kad Soalan */}
-                {(() => {
-                  const currentQ = questions[currentIndex];
-                  return (
-                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl border-4 border-indigo-50 relative">
-                      
-                      {/* Lencana Topik */}
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
-                          {currentQ.topic}
-                        </span>
-                        <span className="text-xs text-gray-400 font-semibold">
-                          Jenis: {currentQ.type === 'MCQ' ? 'Pilihan Berganda' : currentQ.type === 'TRUE_FALSE' ? 'Betul / Salah' : currentQ.type === 'SCENARIO' ? 'Situasi' : 'Aplikasi Ringkas'}
-                        </span>
-                      </div>
+                // Hantar ke Google Sheet
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(studentData)
+                }).catch(err => console.error("Error hantar:", err));
+            };
 
-                      {/* Teks Soalan */}
-                      <h3 className="text-xl md:text-2xl font-bold text-gray-800 mb-6 leading-relaxed">
-                        {currentQ.question}
-                      </h3>
+            const downloadCSV = () => {
+                if (records.length === 0) {
+                    alert("Tiada rekod untuk dimuat turun.");
+                    return;
+                }
+                let csv = "Tarikh,Nama Murid,Kelas,Markah,Jumlah,Peratus (%)\n";
+                records.forEach(r => {
+                    csv += `"${r.date}","${r.name}","${r.class}",${r.score},${r.total},"${r.percentage}%"\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Rekod_Kuiz_Matematik_T3_${new Date().toISOString().slice(0,10)}.csv`;
+                a.click();
+            };
 
-                      {/* Pilihan Jawapan */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                        {currentQ.shuffledOptions.map((opt, idx) => {
-                          let btnStyle = "border-2 border-gray-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 text-gray-700";
-                          
-                          if (selectedOption === opt) {
-                            btnStyle = "border-2 border-indigo-600 bg-indigo-50 text-indigo-900 font-bold shadow";
-                          }
-
-                          if (isSubmitted) {
-                            if (opt === currentQ.answer) {
-                              btnStyle = "border-2 border-green-500 bg-green-100 text-green-900 font-bold";
-                            } else if (selectedOption === opt && opt !== currentQ.answer) {
-                              btnStyle = "border-2 border-red-500 bg-red-100 text-red-900 font-bold";
-                            } else {
-                              btnStyle = "border border-gray-200 bg-gray-50 text-gray-400 opacity-60";
-                            }
-                          }
-
-                          return (
-                            <button
-                              key={idx}
-                              disabled={isSubmitted}
-                              onClick={() => setSelectedOption(opt)}
-                              className={`p-4 rounded-2xl text-left transition text-base md:text-lg flex items-center justify-between ${btnStyle}`}
-                            >
-                              <span>{opt}</span>
-                              {isSubmitted && opt === currentQ.answer && (
-                                <i className="fa-solid fa-circle-check text-green-600 text-xl"></i>
-                              )}
-                              {isSubmitted && selectedOption === opt && opt !== currentQ.answer && (
-                                <i className="fa-solid fa-circle-xmark text-red-600 text-xl"></i>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Petunjuk (Hint) Jika Salah */}
-                      {showHint && !isSubmitted && (
-                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-xl mb-4 text-xs md:text-sm text-yellow-800 flex items-start gap-2">
-                          <i className="fa-solid fa-lightbulb text-yellow-500 text-lg mt-0.5"></i>
-                          <div>
-                            <span className="font-bold">Petunjuk: </span>
-                            {currentQ.hint}
-                          </div>
+            return (
+                <div className="max-w-4xl mx-auto p-4 md:p-6">
+                    {/* Header Nav */}
+                    <div className="bg-blue-600 text-white rounded-2xl p-4 md:p-6 mb-6 shadow-lg flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-yellow-400 text-blue-900 p-3 rounded-xl font-bold text-2xl">
+                                <i className="fa-solid fa-calculator"></i>
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-black tracking-wide">Kuiz Matematik Tahun 3</h1>
+                                <p className="text-blue-100 text-sm">Interaktif • Ceria • Pintar</p>
+                            </div>
                         </div>
-                      )}
+                        <div className="flex bg-blue-800 p-1 rounded-xl">
+                            <button 
+                                onClick={() => setMode('student')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition ${mode === 'student' ? 'bg-white text-blue-900 shadow' : 'text-blue-200'}`}>
+                                <i className="fa-solid fa-user-graduate mr-2"></i>Mod Murid
+                            </button>
+                            <button 
+                                onClick={() => setMode('teacher')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition ${mode === 'teacher' ? 'bg-yellow-400 text-blue-900 shadow' : 'text-blue-200'}`}>
+                                <i className="fa-solid fa-user-tie mr-2"></i>Mod Guru
+                            </button>
+                        </div>
+                    </div>
 
-                      {/* Maklum Balas Terus Selepas Hantar */}
-                      {isSubmitted && (
-                        <div className={`p-4 rounded-2xl mb-6 ${
-                          selectedOption === currentQ.answer 
-                            ? "bg-green-50 border border-green-200 text-green-800" 
-                            : "bg-red-50 border border-red-200 text-red-800"
-                        }`}>
-                          <div className="flex items-center gap-2 font-bold text-lg mb-1">
-                            {selectedOption === currentQ.answer ? (
-                              <>
-                                <i className="fa-solid fa-face-smile text-green-600 text-2xl"></i>
-                                <span>Syabas! Jawapan Anda Betul 🎉</span>
-                              </>
+                    {/* MOD MURID */}
+                    {mode === 'student' && (
+                        <div>
+                            {!isQuizStarted ? (
+                                <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 max-w-lg mx-auto">
+                                    <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Pendaftaran Murid</h2>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Nama Murid:</label>
+                                            <input 
+                                                type="text" 
+                                                value={studentName}
+                                                onChange={(e) => setStudentName(e.target.value)}
+                                                placeholder="Taip nama penuh anda..."
+                                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Kelas:</label>
+                                            <select 
+                                                value={studentClass}
+                                                onChange={(e) => setStudentClass(e.target.value)}
+                                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium bg-white">
+                                                {KELAS_LIST.map(k => <option key={k} value={k}>{k}</option>)}
+                                            </select>
+                                        </div>
+                                        <button 
+                                            onClick={startQuiz}
+                                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-md transition text-lg mt-4">
+                                            Mula Kuiz (40 Soalan) <i className="fa-solid fa-play ml-2"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : !quizCompleted ? (
+                                /* Paparan Soalan */
+                                <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200">
+                                    {/* Progress Bar & Header */}
+                                    <div className="flex justify-between items-center mb-4">
+                                        <span className="text-xs font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                                            {shuffledQuestions[currentQIndex].topic}
+                                        </span>
+                                        <span className="text-sm font-bold text-slate-500">
+                                            Soalan {currentQIndex + 1} / {SOALAN_DATABASE.length}
+                                        </span>
+                                    </div>
+
+                                    <div className="w-full bg-slate-200 h-3 rounded-full mb-6 overflow-hidden">
+                                        <div 
+                                            className="bg-blue-600 h-full transition-all duration-300"
+                                            style={{ width: `${((currentQIndex + 1) / SOALAN_DATABASE.length) * 100}%` }}></div>
+                                    </div>
+
+                                    <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-6">
+                                        {shuffledQuestions[currentQIndex].question}
+                                    </h3>
+
+                                    {/* Options */}
+                                    <div className="space-y-3 mb-6">
+                                        {shuffledQuestions[currentQIndex].shuffledOptions.map((opt, idx) => {
+                                            let btnStyle = "border-slate-200 hover:bg-slate-50 text-slate-700";
+                                            if (selectedAnswer === opt) {
+                                                btnStyle = "border-blue-500 bg-blue-50 text-blue-900 font-bold ring-2 ring-blue-400";
+                                            }
+                                            if (isSubmitted) {
+                                                if (opt === shuffledQuestions[currentQIndex].answer) {
+                                                    btnStyle = "border-emerald-500 bg-emerald-50 text-emerald-900 font-bold";
+                                                } else if (selectedAnswer === opt) {
+                                                    btnStyle = "border-rose-500 bg-rose-50 text-rose-900 font-bold";
+                                                }
+                                            }
+                                            return (
+                                                <button 
+                                                    key={idx}
+                                                    disabled={isSubmitted}
+                                                    onClick={() => setSelectedAnswer(opt)}
+                                                    className={`w-full text-left p-4 rounded-xl border-2 transition flex items-center justify-between ${btnStyle}`}>
+                                                    <span>{opt}</span>
+                                                    {isSubmitted && opt === shuffledQuestions[currentQIndex].answer && (
+                                                        <i className="fa-solid fa-circle-check text-emerald-600 text-xl"></i>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Feedback Box */}
+                                    {isSubmitted && (
+                                        <div className={`p-4 rounded-xl mb-6 ${isCorrect ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'}`}>
+                                            <p className="font-bold text-lg mb-1">
+                                                {isCorrect ? "🎉 Tahniah! Jawapan Betul!" : "❌ Alamak, Jawapan Kurang Tepat."}
+                                            </p>
+                                            <p className="text-sm">{shuffledQuestions[currentQIndex].explanation}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Hint Box jika salah */}
+                                    {!isCorrect && selectedAnswer && !isSubmitted && (
+                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl mb-4 text-xs text-amber-800">
+                                            💡 <strong>Petunjuk:</strong> {shuffledQuestions[currentQIndex].hint}
+                                        </div>
+                                    )}
+
+                                    {/* Buttons */}
+                                    <div className="flex justify-end gap-3">
+                                        {!isSubmitted ? (
+                                            <button 
+                                                onClick={handleAnswerSubmit}
+                                                disabled={!selectedAnswer}
+                                                className={`px-6 py-3 rounded-xl font-bold text-white transition ${selectedAnswer ? 'bg-blue-600 hover:bg-blue-700 shadow-md' : 'bg-slate-300 cursor-not-allowed'}`}>
+                                                Hantar Jawapan
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                onClick={handleNextQuestion}
+                                                className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold shadow-md transition">
+                                                {currentQIndex + 1 === SOALAN_DATABASE.length ? "Lihat Keputusan" : "Soalan Seterusnya ➔"}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             ) : (
-                              <>
-                                <i className="fa-solid fa-face-frown text-red-600 text-2xl"></i>
-                                <span>Kurang Tepat! Mari Belajar Daripada Kesilapan Ini.</span>
-                              </>
+                                /* Keputusan Akhir Murid */
+                                <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 text-center">
+                                    <div className="inline-block p-4 bg-yellow-100 text-yellow-600 rounded-full text-4xl mb-4">🏆</div>
+                                    <h2 className="text-2xl font-black text-slate-800 mb-1">Syabas, {studentName}!</h2>
+                                    <p className="text-slate-500 text-sm mb-6">Kelas: {studentClass}</p>
+
+                                    <div className="bg-blue-50 rounded-2xl p-6 mb-6 inline-block w-full max-w-xs">
+                                        <span className="block text-slate-500 text-xs uppercase tracking-wider font-bold mb-1">Markah Akhir</span>
+                                        <span className="text-5xl font-black text-blue-600">{score} / {SOALAN_DATABASE.length}</span>
+                                        <span className="block text-sm font-bold text-blue-800 mt-2">({Math.round((score / SOALAN_DATABASE.length)*100)}%)</span>
+                                    </div>
+
+                                    <p className="text-sm text-emerald-600 font-bold mb-6">
+                                        ✅ Keputusan anda telah secara automatik disimpan ke rekod guru!
+                                    </p>
+
+                                    <button 
+                                        onClick={() => setIsQuizStarted(false)}
+                                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow transition">
+                                        Cuba Sekali Lagi
+                                    </button>
+                                </div>
                             )}
-                          </div>
-                          <p className="text-sm mt-1 leading-relaxed">
-                            <b>Penerangan: </b>{currentQ.explanation}
-                          </p>
                         </div>
-                      )}
-
-                      {/* Butang Tindakan */}
-                      <div className="flex justify-between items-center pt-2">
-                        {!isSubmitted ? (
-                          <button
-                            onClick={handleCheckAnswer}
-                            disabled={!selectedOption}
-                            className={`w-full md:w-auto px-8 py-3.5 rounded-xl font-bold text-white transition shadow-lg flex items-center justify-center gap-2 ${
-                              selectedOption 
-                                ? "bg-indigo-600 hover:bg-indigo-700 cursor-pointer" 
-                                : "bg-gray-300 cursor-not-allowed"
-                            }`}
-                          >
-                            Semak Jawapan <i className="fa-solid fa-check-circle"></i>
-                          </button>
-                        ) : (
-                          <div className="flex gap-3 w-full justify-end">
-                            {selectedOption !== currentQ.answer && (
-                              <button
-                                onClick={handleTryAgain}
-                                className="px-5 py-3 rounded-xl font-bold border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition"
-                              >
-                                <i className="fa-solid fa-rotate-right mr-1"></i> Cuba Lagi
-                              </button>
-                            )}
-                            <button
-                              onClick={handleNextQuestion}
-                              className="px-8 py-3 rounded-xl font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg transition flex items-center gap-2"
-                            >
-                              {currentIndex + 1 < questions.length ? (
-                                <>Soalan Seterusnya <i className="fa-solid fa-arrow-right"></i></>
-                              ) : (
-                                <>Lihat Keputusan <i className="fa-solid fa-trophy"></i></>
-                              )}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-
-            {/* 4. SKRIN KEPUTUSAN / RESULT */}
-            {mode === 'RESULT' && (
-              <div className="bg-white rounded-3xl p-6 md:p-10 shadow-xl border-4 border-indigo-100 text-center space-y-8 my-4">
-                
-                <div>
-                  <div className="w-24 h-24 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center text-5xl mx-auto shadow-inner mb-4">
-                    <i className="fa-solid fa-award"></i>
-                  </div>
-                  <h2 className="text-3xl md:text-4xl font-extrabold text-gray-800">Tahniah, {studentName}!</h2>
-                  <p className="text-gray-500 font-semibold mt-1">Anda telah menyelesaikan Kuiz Matematik Tahun 3</p>
-                  
-                  {googleScriptUrl && (
-                    <div className="mt-2 inline-flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-                      {isSyncing ? (
-                        <><i className="fa-solid fa-spinner fa-spin"></i> Menyimpan ke Google Drive...</>
-                      ) : (
-                        <><i className="fa-solid fa-cloud-check"></i> Keputusan berjaya dihantar ke Google Sheet Guru!</>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Markah Murid */}
-                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-3xl max-w-sm mx-auto shadow-lg">
-                  <div className="text-xs uppercase tracking-wider font-bold opacity-80">Skor Keseluruhan</div>
-                  <div className="text-5xl font-extrabold my-2">{score} / {questions.length}</div>
-                  <div className="text-xl font-bold bg-white/20 inline-block px-4 py-1 rounded-full">
-                    {Math.round((score / questions.length) * 100)}%
-                  </div>
-                </div>
-
-                {/* Ringkasan Prestasi Mengikut Topik */}
-                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 text-left">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <i className="fa-solid fa-chart-pie text-indigo-600"></i> Analisis Prestasi Mengikut Topik
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {topicAnalysis.map((item, idx) => (
-                      <div key={idx} className="bg-white p-3 rounded-xl border border-gray-200 flex justify-between items-center text-xs md:text-sm">
-                        <span className="font-bold text-gray-700">{item.topic}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-500">{item.correct}/{item.total}</span>
-                          <span className={`px-2 py-0.5 rounded font-bold ${
-                            item.percentage >= 80 ? 'bg-green-100 text-green-700' : item.percentage >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                          }`}>
-                            {item.percentage}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Saranan Ulang Kaji */}
-                {revisionRecommendations.length > 0 ? (
-                  <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-2xl text-left">
-                    <h4 className="font-bold text-orange-800 flex items-center gap-2 mb-2">
-                      <i className="fa-solid fa-lightbulb text-orange-500"></i> Cadangan Topik Ulang Kaji:
-                    </h4>
-                    <p className="text-xs md:text-sm text-orange-700 mb-2">
-                      Sila beri tumpuan lebih pada topik-topik berikut untuk meningkatkan pemahaman anda:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {revisionRecommendations.map((r, i) => (
-                        <span key={i} className="bg-white border border-orange-300 text-orange-800 text-xs px-3 py-1 rounded-full font-bold">
-                          📌 {r.topic} ({r.percentage}%)
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-green-50 border border-green-200 p-4 rounded-2xl text-green-800 font-bold text-sm">
-                    🌟 Luar biasa! Anda menguasai SEMUA topik dengan sangat cemerlang!
-                  </div>
-                )}
-
-                {/* Butang Tindakan */}
-                <div className="flex flex-wrap justify-center gap-4 pt-4">
-                  <button
-                    onClick={() => setMode('STUDENT_LOGIN')}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl shadow transition"
-                  >
-                    <i className="fa-solid fa-rotate-right mr-1"></i> Cuba Sekali Lagi
-                  </button>
-                  <button
-                    onClick={() => setMode('HOME')}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-6 py-3 rounded-xl transition"
-                  >
-                    <i className="fa-solid fa-house mr-1"></i> Kembali ke Halaman Utama
-                  </button>
-                </div>
-
-              </div>
-            )}
-
-            {/* 5. LOG MASUK GURU */}
-            {mode === 'TEACHER_LOGIN' && (
-              <div className="max-w-md mx-auto bg-white rounded-3xl p-6 md:p-8 shadow-xl border-4 border-yellow-100 mt-6">
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-3">
-                    <i className="fa-solid fa-lock"></i>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-800">Mod Guru</h2>
-                  <p className="text-xs text-gray-500 mt-1">Masukkan kata laluan guru untuk mengakses papan pemuka.</p>
-                </div>
-
-                <form onSubmit={handleTeacherLogin} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Kata Laluan:
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="••••"
-                      value={teacherPassword}
-                      onChange={(e) => setTeacherPassword(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 outline-none text-center text-2xl tracking-widest text-gray-800 font-bold transition"
-                    />
-                    {passwordError && (
-                      <p className="text-red-500 text-xs font-bold mt-1 text-center">{passwordError}</p>
                     )}
-                  </div>
 
-                  <div className="pt-2 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setMode('HOME')}
-                      className="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl transition"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      type="submit"
-                      className="w-2/3 bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-3 rounded-xl shadow-lg transition"
-                    >
-                      Log Masuk
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
+                    {/* MOD GURU */}
+                    {mode === 'teacher' && (
+                        <div>
+                            {!isTeacherAuthenticated ? (
+                                <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 max-w-md mx-auto text-center">
+                                    <div className="bg-yellow-100 text-yellow-700 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+                                        🔒
+                                    </div>
+                                    <h2 className="text-xl font-bold text-slate-800 mb-2">Akses Mod Guru</h2>
+                                    <p className="text-xs text-slate-500 mb-4">Masukkan kata laluan untuk mengakses laporan murid.</p>
+                                    <input 
+                                        type="password" 
+                                        value={passwordInput}
+                                        onChange={(e) => setPasswordInput(e.target.value)}
+                                        placeholder="Kata Laluan (5555)"
+                                        className="w-full text-center px-4 py-3 border border-slate-300 rounded-xl mb-4 font-bold tracking-widest focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            if (passwordInput === '5555') {
+                                                setIsTeacherAuthenticated(true);
+                                            } else {
+                                                alert('Kata laluan salah!');
+                                            }
+                                        }}
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow transition">
+                                        Log Masuk
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200">
+                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                                        <div>
+                                            <h2 className="text-xl font-bold text-slate-800">Papan Pemuka Rekod Keputusan Murid</h2>
+                                            <p className="text-xs text-slate-500">Jumlah Rekod: {records.length} penyertaan</p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button 
+                                                onClick={fetchFromSheet}
+                                                disabled={isLoading}
+                                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-2">
+                                                <i className={`fa-solid fa-rotate ${isLoading ? 'fa-spin' : ''}`}></i> Muat Semula Data
+                                            </button>
+                                            <button 
+                                                onClick={downloadCSV}
+                                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-2">
+                                                <i className="fa-solid fa-file-excel"></i> Download Excel (CSV)
+                                            </button>
+                                            <button 
+                                                onClick={() => window.print()}
+                                                className="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow flex items-center gap-2">
+                                                <i className="fa-solid fa-print"></i> Print Report
+                                            </button>
+                                        </div>
+                                    </div>
 
-            {/* 6. PAPAN PEMUKA GURU (TEACHER DASHBOARD) */}
-            {mode === 'TEACHER_DASHBOARD' && (
-              <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl border-4 border-blue-100 my-4 space-y-6">
-                
-                {/* Header Guru */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 gap-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-blue-900 flex items-center gap-2">
-                      <i className="fa-solid fa-chart-line text-yellow-500"></i> Papan Pemuka Rekod Keputusan Murid
-                    </h2>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Jumlah Rekod Disimpan (Lokal): <b>{records.length}</b> penyertaan
-                    </p>
-                  </div>
+                                    {/* Status Message Box */}
+                                    <div className="p-3 bg-slate-100 rounded-xl mb-4 text-xs font-semibold text-slate-700">
+                                        Status Sambungan: {fetchStatus || 'Sedia'}
+                                    </div>
 
-                  {/* Butang Kawalan Guru */}
-                  <div className="flex flex-wrap gap-2 no-print">
-                    <button
-                      onClick={handleDownloadExcel}
-                      className="bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm font-bold px-4 py-2 rounded-xl shadow transition flex items-center gap-1.5"
-                    >
-                      <i className="fa-solid fa-file-excel text-base"></i> Download Excel
-                    </button>
-                    <button
-                      onClick={handlePrint}
-                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold px-4 py-2 rounded-xl shadow transition flex items-center gap-1.5"
-                    >
-                      <i className="fa-solid fa-print text-base"></i> Print Report
-                    </button>
-                    <button
-                      onClick={clearAllRecords}
-                      className="bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold px-4 py-2 rounded-xl shadow transition flex items-center gap-1.5"
-                    >
-                      <i className="fa-solid fa-trash-can text-base"></i> Padam Rekod
-                    </button>
-                  </div>
+                                    {/* Table */}
+                                    <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                                        <table className="w-full text-left text-sm text-slate-600">
+                                            <thead className="bg-slate-50 text-slate-700 uppercase text-xs font-bold border-b border-slate-200">
+                                                <tr>
+                                                    <th className="p-3">Tarikh</th>
+                                                    <th className="p-3">Nama Murid</th>
+                                                    <th className="p-3">Kelas</th>
+                                                    <th className="p-3">Markah</th>
+                                                    <th className="p-3">Peratus</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-200">
+                                                {records.length > 0 ? (
+                                                    records.map((r, idx) => (
+                                                        <tr key={idx} className="hover:bg-slate-50">
+                                                            <td className="p-3 text-xs">{r.date || '-'}</td>
+                                                            <td className="p-3 font-bold text-slate-800">{r.name}</td>
+                                                            <td className="p-3">{r.class}</td>
+                                                            <td className="p-3 font-bold">{r.score} / {r.total || 40}</td>
+                                                            <td className="p-3">
+                                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${Number(r.percentage) >= 80 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                                                    {r.percentage}%
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan="5" className="p-8 text-center text-slate-400">
+                                                            Tekan <strong>"Muat Semula Data"</strong> di atas untuk mengambil rekod terkini dari Google Sheet.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
+            );
+        }
 
-                {/* Tetapan Pangkalan Data Google Drive */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 rounded-2xl no-print">
-                  <h3 className="font-bold text-blue-900 text-sm flex items-center gap-2 mb-2">
-                    <i className="fa-solid fa-database text-indigo-600"></i> Tetapan Integration Google Drive (Google Sheets Database)
-                  </h3>
-                  <form onSubmit={handleSaveGoogleUrl} className="flex flex-col md:flex-row gap-2">
-                    <input
-                      type="url"
-                      placeholder="Tampal Google Apps Script Web App URL di sini..."
-                      value={googleScriptUrl}
-                      onChange={(e) => setGoogleScriptUrl(e.target.value)}
-                      className="flex-grow px-3 py-2 text-xs md:text-sm rounded-xl border border-gray-300 outline-none focus:border-indigo-500"
-                    />
-                    <button
-                      type="submit"
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs md:text-sm px-4 py-2 rounded-xl transition shadow"
-                    >
-                      Simpan URL
-                    </button>
-                  </form>
-                  {saveUrlSuccess && (
-                    <p className="text-xs font-bold text-green-600 mt-1">
-                      <i className="fa-solid fa-check-circle"></i> URL Google Script berjaya disimpan!
-                    </p>
-                  )}
-                  <p className="text-[11px] text-gray-500 mt-1">
-                    *Tampalkan Web App URL daripada Google Apps Script untuk menyimpan semua keputusan jawapan murid terus ke Google Sheet secara automatik.
-                  </p>
-                </div>
-
-                {/* Tajuk Laporan Cetakan */}
-                <div className="print-only text-center my-6">
-                  <h1 className="text-2xl font-bold">LAPORAN KEPUTUSAN KUIZ MATEMATIK TAHUN 3</h1>
-                  <p className="text-sm">Dicetak pada: {new Date().toLocaleDateString('ms-MY')}</p>
-                </div>
-
-                {/* Jadual Keputusan */}
-                {records.length > 0 ? (
-                  <div className="overflow-x-auto border rounded-2xl">
-                    <table className="w-full text-left text-sm text-gray-700">
-                      <thead className="bg-indigo-50 text-indigo-900 uppercase text-xs font-extrabold border-b">
-                        <tr>
-                          <th className="p-3">#</th>
-                          <th className="p-3">Nama Murid</th>
-                          <th className="p-3">Kelas</th>
-                          <th className="p-3">Tarikh & Masa</th>
-                          <th className="p-3 text-center">Markah</th>
-                          <th className="p-3 text-center">Peratus (%)</th>
-                          <th className="p-3 text-center">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {records.map((r, idx) => (
-                          <tr key={r.id} className="hover:bg-gray-50 transition">
-                            <td className="p-3 font-bold text-gray-400">{idx + 1}</td>
-                            <td className="p-3 font-bold text-gray-800">{r.name}</td>
-                            <td className="p-3"><span className="bg-gray-100 px-2 py-1 rounded text-xs font-semibold">{r.class}</span></td>
-                            <td className="p-3 text-xs text-gray-500">{r.date}</td>
-                            <td className="p-3 text-center font-bold">{r.score} / {r.total}</td>
-                            <td className="p-3 text-center font-extrabold text-indigo-600">{r.percentage}%</td>
-                            <td className="p-3 text-center">
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                                r.percentage >= 80 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : r.percentage >= 50 
-                                  ? 'bg-yellow-100 text-yellow-800' 
-                                  : 'bg-red-100 text-red-800'
-                              }`}>
-                                {r.percentage >= 80 ? 'Cemerlang' : r.percentage >= 50 ? 'Memuaskan' : 'Perlu Bimbingan'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-gray-400">
-                    <i className="fa-solid fa-inbox text-5xl mb-3 block"></i>
-                    <p className="font-semibold">Belum ada sebarang rekod jawapan murid disimpan.</p>
-                  </div>
-                )}
-
-              </div>
-            )}
-
-          </main>
-
-          {/* FOOTER */}
-          <footer className="bg-white border-t border-gray-200 py-4 text-center text-xs text-gray-500 no-print">
-            <p>© 2026 Kuiz Interaktif Matematik Tahun 3 • Dibina untuk Kecemerlangan Murid</p>
-          </footer>
-
-        </div>
-      );
-    }
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-  </script>
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
 </body>
 </html>
